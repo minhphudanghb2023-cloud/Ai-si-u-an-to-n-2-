@@ -1,0 +1,53 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>EduSafe AI - Trắc nghiệm Kiến thức</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><div class="nav-logo">🛡️</div><div><h1>EduSafe AI</h1><span>Học Sinh</span></div></div>
+        <div class="nav-center">
+            <a href="/student" class="nav-role-btn">Trang chủ</a>
+            <a href="/student/chat" class="nav-role-btn">Chat AI</a>
+            <a href="/student/mood" class="nav-role-btn">Nhật ký</a>
+            <a href="/student/report" class="nav-role-btn">Báo cáo</a>
+            <a href="/student/simulate" class="nav-role-btn">Mô phỏng</a>
+            <a href="/student/quiz" class="nav-role-btn active">Trắc nghiệm</a>
+            <a href="/student/guide" class="nav-role-btn">Cẩm nang</a>
+        </div>
+        <div class="nav-right"><div class="nav-user"><div class="nav-avatar" id="userAvatar">HS</div><div class="nav-user-info"><div class="nav-user-name" id="userName">Học sinh</div></div></div></div>
+    </nav>
+    <div class="page">
+        <div class="page-header"><h2>📚 Trắc Nghiệm Kiến Thức</h2><p>Học luật, nhận biết hành vi bạo lực học đường và nhận thưởng điểm tích lũy</p></div>
+        <div style="display:flex;gap:16px;margin-bottom:20px">
+            <div class="bento-card green" style="flex:1;text-align:center"><div class="bento-value" id="quizTotal">0</div><div class="bento-label">Đã trả lời</div></div>
+            <div class="bento-card blue" style="flex:1;text-align:center"><div class="bento-value" id="quizCorrect">0</div><div class="bento-label">Trả lời đúng</div></div>
+            <div class="bento-card orange" style="flex:1;text-align:center"><div class="bento-value" id="quizPoints">0</div><div class="bento-label">Điểm tích lũy</div></div>
+        </div>
+        <div id="quizContainer"></div>
+        <div id="quizResult" style="display:none"><div class="card"><div class="card-body" style="text-align:center;padding:40px"><div style="font-size:48px;margin-bottom:8px">🎉</div><div style="font-size:18px;font-weight:700;margin-bottom:4px">Hoàn thành!</div><div style="font-size:48px;font-weight:700;color:var(--primary)" id="finalScore">0</div><div style="color:var(--text2);margin-bottom:16px" id="finalText">điểm</div><button class="btn btn-primary" onclick="resetQuiz()">🔄 Làm lại</button></div></div></div>
+    </div>
+    <script>
+    const token=localStorage.getItem('token');if(!token)location.href='/login';
+    const questions=[
+        {q:"Theo pháp luật Việt Nam, hành vi bắt nạt học đường có bị xử phạt không?",opts:["Không có luật xử phạt","Bị xử phạt hành chính hoặc hình sự tùy mức độ","Chỉ nhắc nhở","Không liên quan đến pháp luật"],correct:1,explain:"Theo Nghị định 144/2021/NĐ-CP, hành vi xâm phạm thân thể, nhân phẩm người khác có thể bị xử phạt hành chính hoặc truy cứu trách nhiệm hình sự."},
+        {q:"Dấu hiệu nào cho thấy một bạn học sinh có thể đang bị bắt nạt?",opts:["Kết quả học tập giảm đột ngột","Sợ đến trường, thường xuyên xin nghỉ","Có vết thương trên cơ thể không giải thích được","Tất cả các dấu hiệu trên"],correct:3,explain:"Tất cả đều là dấu hiệu cảnh báo. Nếu nhận thấy nhiều dấu hiệu, hãy báo ngay cho giáo viên hoặc người lớn tin cậy!"},
+        {q:"Khi chứng kiến bạn bị bắt nạt, hành động đúng đắn nhất là gì?",opts:["Im lặng, không can thiệp","Quay video đăng lên mạng","Báo ngay cho giáo viên hoặc người lớn","Đánh lại kẻ bắt nạt"],correct:2,explain:"Báo cho giáo viên/người lớn là cách an toàn và hiệu quả nhất. Đánh lại có thể khiến tình hình tệ hơn."},
+        {q:"Khi bị áp lực điểm số từ gia đình, cách ứng xử tốt nhất là gì?",opts:["Giấu điểm, nói dối","Tự trách mình, cố gắng hơn nữa","Giao tiếp cởi mở, chia sẻ cảm xúc thật","Bỏ học, trốn tránh"],correct:2,explain:"Giao tiếp cởi mở giúp bố mẹ hiểu cảm xúc của bạn. Bạn có thể nói: “Con hiểu bố mẹ muốn tốt cho con, nhưng con cần sự động viên thay vì áp lực.”"},
+        {q:"Trường học có trách nhiệm bảo vệ học sinh khỏi bạo lực không?",opts:["Không, đó là việc của gia đình","Có, theo Luật Giáo dục và Nghị định 80/2017","Chỉ khi có yêu cầu từ phụ huynh","Không có quy định cụ thể"],correct:1,explain:"Theo Luật Giáo dục 2019 và Nghị định 80/2017/NĐ-CP, nhà trường có trách nhiệm bảo vệ quyền và lợi ích hợp pháp của học sinh, bao gồm phòng chống bạo lực học đường."},
+        {q:"Bạo lực mạng (cyberbullying) bao gồm những hành vi nào?",opts:["Gửi tin nhắn đe dọa trên mạng","Lan truyền tin xấu về bạn","Chế ảnh/video gây xấu hổ","Tất cả các hành vi trên"],correct:3,explain:"Bạo lực mạng bao gồm mọi hành vi gây hại qua không gian số: đe dọa, xúc phạm, lan truyền thông tin sai lệch, quấy rối trực tuyến."},
+        {q:"Khi nhận được tin nhắn đe dọa trên mạng, bạn nên làm gì?",opts:["Trả lời lại để cảnh cáo","Xóa bỏ, coi như không có gì","Báo ngay cho giáo viên và phụ huynh","Chia sẻ lên mạng xã hội"],correct:2,explain:"Hãy lưu lại bằng chứng và báo ngay cho giáo viên hoặc phụ huynh. Không trả lời lại hay chia sẻ lên mạng vì có thể khiến tình hình tệ hơn."},
+        {q:"Tại sao việc lên tiếng chống bạo lực học đường lại quan trọng?",opts:["Vì pháp luật yêu cầu","Vì im lặng cũng là tiếp tay cho bạo lực","Vì muốn được mọi người khen","Vì bố mẹ bắt buộc"],correct:1,explain:"Im lặng trước bạo lực khiến kẻ bắt nạt tiếp tục hành vi và nạn nhân cảm thấy cô đơn hơn. Lên tiếng giúp bảo vệ bản thân và người khác."}
+    ];
+    let quizState={current:0,score:0,answered:[],started:false};
+    function render(){const el=document.getElementById('quizContainer');if(quizState.current>=questions.length){document.getElementById('quizContainer').style.display='none';document.getElementById('quizResult').style.display='block';document.getElementById('finalScore').textContent=quizState.score+'/'+questions.length;document.getElementById('finalText').textContent=quizState.score>=6?'Xuất sắc! 🌟':quizState.score>=4?'Khá tốt! 👍':'Cần cố gắng thêm! 💪';return}document.getElementById('quizContainer').style.display='block';document.getElementById('quizResult').style.display='none';const q=questions[quizState.current];document.getElementById('quizTotal').textContent=quizState.current;document.getElementById('quizCorrect').textContent=quizState.score;document.getElementById('quizPoints').textContent=quizState.score*10;el.innerHTML='<div class="card"><div class="card-header"><h3>Câu '+(quizState.current+1)+'/'+questions.length+'</h3><span class="badge badge-blue">⭐ '+quizState.score*10+' điểm</span></div><div class="card-body"><div style="font-size:15px;font-weight:600;margin-bottom:16px;line-height:1.5">'+q.q+'</div><div id="quizOpts">'+q.opts.map((o,i)=>'<div class="quiz-option" onclick="answerQuiz('+i+')">'+o+'</div>').join('')+'</div><div id="quizExplain" style="display:none;margin-top:12px;padding:12px;border-radius:8px;font-size:13px;line-height:1.5"></div></div></div>'}
+    function answerQuiz(idx){const q=questions[quizState.current];const opts=document.getElementById('quizOpts').children;for(let o of opts)o.style.pointerEvents='none';if(idx===q.correct){opts[idx].classList.add('correct');quizState.score++}else{opts[idx].classList.add('wrong');opts[q.correct].classList.add('correct')}const explain=document.getElementById('quizExplain');explain.style.display='block';explain.style.background=idx===q.correct?'var(--primary-light)':'var(--red-light)';explain.innerHTML='<strong>'+(idx===q.correct?'✅ Chính xác!':'❌ Chưa đúng')+'</strong><br>'+q.explain;setTimeout(()=>{quizState.current++;render()},2500)}
+    function resetQuiz(){quizState={current:0,score:0,answered:[],started:false};render()}
+    async function load(){try{const r=await fetch('/api/auth/me',{headers:{'Authorization':'Bearer '+token}});const u=await r.json();document.getElementById('userName').textContent=u.full_name;document.getElementById('userAvatar').textContent=u.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}catch(e){}}
+    load();render();
+    </script>
+</body>
+</html>

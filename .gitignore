@@ -1,0 +1,14 @@
+# Bí mật - TUYỆT ĐỐI không đưa lên GitHub
+.env
+
+# Cơ sở dữ liệu & log
+edusafe.db
+*.log
+
+# Cache Python
+__pycache__/
+*.pyc
+
+# Môi trường ảo
+venv/
+.venv/

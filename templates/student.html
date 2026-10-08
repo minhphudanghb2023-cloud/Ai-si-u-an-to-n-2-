@@ -1,0 +1,96 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>EduSafe AI - Học Sinh</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><div class="nav-logo">🛡️</div><div><h1>EduSafe AI</h1><span>Học Sinh</span></div></div>
+        <div class="nav-center">
+            <a href="/student" class="nav-role-btn active">Trang chủ</a>
+            <a href="/student/chat" class="nav-role-btn">Chat AI</a>
+            <a href="/student/mood" class="nav-role-btn">Nhật ký</a>
+            <a href="/student/report" class="nav-role-btn">Báo cáo</a>
+            <a href="/student/simulate" class="nav-role-btn">Mô phỏng</a>
+            <a href="/student/quiz" class="nav-role-btn">Trắc nghiệm</a>
+            <a href="/student/guide" class="nav-role-btn">Cẩm nang</a>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user" onclick="if(confirm('Đăng xuất?')){localStorage.clear();location.href='/login'}">
+                <div class="nav-avatar" id="userAvatar">HS</div>
+                <div class="nav-user-info"><div class="nav-user-name" id="userName">Học sinh</div><div class="nav-user-role">Học sinh</div></div>
+            </div>
+        </div>
+    </nav>
+    <div class="page">
+        <div class="page-header"><h2>Xin chào, <span id="greetName">bạn</span>! 👋</h2><p>EduSafe AI luôn ở đây để lắng nghe và hỗ trợ bạn</p></div>
+        <div class="bento-grid bento-4x1" style="margin-bottom:24px">
+            <div class="bento-card green" onclick="location.href='/student/chat'"><div class="bento-icon green">💬</div><div class="bento-value" style="font-size:18px">Chat AI</div><div class="bento-label">Trò chuyện với trợ lý AI thân thiện</div></div>
+            <div class="bento-card blue" onclick="location.href='/student/mood'"><div class="bento-icon blue">📝</div><div class="bento-value" style="font-size:18px">Nhật ký</div><div class="bento-label">Ghi lại cảm xúc hôm nay</div></div>
+            <div class="bento-card red" onclick="location.href='/student/report'"><div class="bento-icon red">🚨</div><div class="bento-value" style="font-size:18px">Báo cáo</div><div class="bento-label">Gửi báo cáo ẩn danh khẩn cấp</div></div>
+            <div class="bento-card purple" onclick="location.href='/student/simulate'"><div class="bento-icon purple">🎮</div><div class="bento-value" style="font-size:18px">Mô phỏng</div><div class="bento-label">Trò chơi ứng phó bạo lực</div></div>
+        </div>
+        <div class="bento-grid bento-2x2">
+            <div class="card">
+                <div class="card-header"><h3>📊 Chỉ số An toàn của bạn</h3></div>
+                <div class="card-body">
+                    <div style="text-align:center;padding:10px 0">
+                        <div style="font-size:48px;font-weight:700;color:var(--primary)" id="safetyScore">85</div>
+                        <div style="color:var(--text2);font-size:13px" id="safetyLabel">An toàn</div>
+                        <div style="margin-top:12px;height:8px;background:var(--surface-alt);border-radius:4px;overflow:hidden"><div style="height:100%;width:85%;background:var(--primary);border-radius:4px" id="safetyBar"></div></div>
+                    </div>
+                    <div style="display:flex;gap:12px;margin-top:16px">
+                        <div style="flex:1;text-align:center;padding:10px;background:var(--primary-bg);border-radius:8px"><div style="font-size:20px;font-weight:700;color:var(--primary)" id="totalMood">0</div><div style="font-size:11px;color:var(--text2)">Nhật ký đã ghi</div></div>
+                        <div style="flex:1;text-align:center;padding:10px;background:var(--blue-bg);border-radius:8px"><div style="font-size:20px;font-weight:700;color:var(--blue)" id="quizScore">0</div><div style="font-size:11px;color:var(--text2)">Điểm kiến thức</div></div>
+                        <div style="flex:1;text-align:center;padding:10px;background:#fff7ed;border-radius:8px"><div style="font-size:20px;font-weight:700;color:#ea580c" id="streakCount">0</div><div style="font-size:11px;color:var(--text2)">🔥 Chuỗi liên tiếp</div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>🕐 Nhật ký gần đây</h3></div>
+                <div style="display:flex;gap:8px;padding:8px 16px;align-items:center">
+                    <label style="font-size:12px;cursor:pointer"><input type="checkbox" id="checkAllMood" onchange="toggleAllMood(this.checked)"> Chọn tất cả</label>
+                    <button onclick="deleteSelected()" style="margin-left:auto;background:#e53e3e;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer">🗑️ Xóa đã chọn</button>
+                </div>
+                <div class="card-body" id="recentMoods" style="max-height:200px;overflow-y:auto"><div style="text-align:center;color:var(--text3);padding:20px">Chưa có nhật ký nào</div></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>📚 Cẩm nang Nhanh</h3></div>
+                <div class="card-body">
+                    <div style="display:flex;flex-direction:column;gap:8px">
+                        <a href="/student/guide" class="alert-item info" style="margin:0;cursor:pointer"><div class="alert-icon">📖</div><div class="alert-content"><div class="alert-title">Quyền của bạn</div><div class="alert-msg">Tìm hiểu quyền được bảo vệ</div></div></a>
+                        <a href="/student/guide" class="alert-item warning" style="margin:0;cursor:pointer"><div class="alert-icon">⚠️</div><div class="alert-content"><div class="alert-title">Dấu hiệu bạo lực</div><div class="alert-msg">Nhận biết các hình thức bạo lực</div></div></a>
+                        <a href="/student/guide" class="alert-item info" style="margin:0;cursor:pointer"><div class="alert-icon">🆘</div><div class="alert-content"><div class="alert-title">Khi cần giúp đỡ</div><div class="alert-msg">Liên hệ khẩn cấp &amp; đường dây nóng</div></div></a>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>🏆 Điểm Tích Lũy</h3></div>
+                <div class="card-body">
+                    <div style="text-align:center;padding:10px 0"><div style="font-size:42px;font-weight:700;color:var(--orange)" id="totalPoints">0</div><div style="font-size:12px;color:var(--text2)">điểm đã thu thập</div></div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+                        <div style="text-align:center"><div style="width:48px;height:48px;background:var(--surface-alt);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 4px">🌱</div><div style="font-size:10px;color:var(--text3)">Mới bắt đầu</div></div>
+                        <div style="text-align:center"><div style="width:48px;height:48px;background:var(--surface-alt);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 4px;opacity:.3">🛡️</div><div style="font-size:10px;color:var(--text3)">Bảo vệ</div></div>
+                        <div style="text-align:center"><div style="width:48px;height:48px;background:var(--surface-alt);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 4px;opacity:.3">⭐</div><div style="font-size:10px;color:var(--text3)">Siêu sao</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    const token=localStorage.getItem('token');if(!token)location.href='/login';
+    const API={headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}};
+    async function load(){try{const r=await fetch('/api/auth/me',API);if(!r.ok){location.href='/login';return}const u=await r.json();document.getElementById('userName').textContent=u.full_name;document.getElementById('greetName').textContent=u.full_name.split(' ').pop();document.getElementById('userAvatar').textContent=u.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}catch(e){location.href='/login'}}
+    async function loadMoods(){try{const r=await fetch('/api/mood/history',API);const d=await r.json();const logs=d.logs||[];document.getElementById('streakCount').textContent=d.streak||0;document.getElementById('totalMood').textContent=logs.length;const el=document.getElementById('recentMoods');if(!logs.length){el.innerHTML='<div style="text-align:center;color:var(--text3);padding:20px">Chưa có nhật ký</div>';document.getElementById('safetyScore').textContent=100;document.getElementById('safetyBar').style.width='100%';document.getElementById('safetyLabel').textContent='An toàn';return}el.innerHTML=logs.slice(0,5).map(m=>'<div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;margin-bottom:6px;background:var(--surface-alt)"><span style="font-size:20px">'+(m.mood_emoji||'')+'</span><div style="flex:1"><div style="font-size:12px;font-weight:600">'+(m.mood_label||m.mood)+'</div><div style="font-size:11px;color:var(--text3)">'+(m.note||'').slice(0,30)+'</div></div><input type="checkbox" class="mood-cb" value="'+m.id+'" style="margin:0 6px"><button onclick="delMood('+m.id+')" style="border:none;background:none;color:#e53e3e;cursor:pointer;font-size:15px;padding:2px 6px" title="Xóa">🗑️</button></div>').join('');if(logs.length>0){let s=100;const tucgian=logs.some(m=>m.mood==='tucgian');if(tucgian){s=0}else{for(const m of [...logs].reverse()){let adj=0;if(m.mood==='vui')adj=50;else if(m.mood==='binhthuong')adj=30;else if(m.mood==='buon')adj=-50;else if(m.mood==='loangiang')adj=-75;s=Math.max(0,Math.min(100,s+adj))}}const l3m=logs.slice(0,3).map(m=>m.mood);const gset=new Set(l3m);if(logs.length>=3&&gset.has('buon')&&gset.has('tucgian')&&gset.has('loangiang'))s=0;const l4m=logs.slice(0,4).map(m=>m.mood);const neg4=l4m.filter(x=>x==='buon'||x==='loangiang').length;if(logs.length>=4&&neg4>=2)s=0;const last2v=logs.slice(0,2);if(logs.length>=2&&last2v.every(m=>m.mood==='vui'))s=100;document.getElementById('safetyScore').textContent=s;document.getElementById('safetyBar').style.width=s+'%';document.getElementById('safetyLabel').textContent=s>=70?'An toàn':s>=40?'Cảnh báo':'Nguy hiểm'}else{document.getElementById('safetyScore').textContent=100;document.getElementById('safetyBar').style.width='100%';document.getElementById('safetyLabel').textContent='An toàn'}}catch(e){}}
+    async function loadQuiz(){try{const r=await fetch('/api/quiz/score',API);const d=await r.json();document.getElementById('quizScore').textContent=d.score||0;document.getElementById('totalPoints').textContent=(d.score||0)*10}catch(e){}}
+    load();loadMoods();loadQuiz();
+    setInterval(function(){loadMoods()},10000);
+    async function delMood(id){if(!confirm('Xóa nhật ký này?'))return;await fetch('/api/mood/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});loadMoods()}
+    function toggleAllMood(v){document.querySelectorAll('.mood-cb').forEach(c=>c.checked=v)}
+    async function deleteSelected(){const ids=[...document.querySelectorAll('.mood-cb:checked')].map(c=>c.value);if(!ids.length){alert('Chưa chọn nhật ký nào');return}if(!confirm('Xóa '+ids.length+' nhật ký đã chọn?'))return;for(const id of ids){await fetch('/api/mood/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+token}})}loadMoods()}
+    </script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>EduSafe AI - Giáo viên</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><div class="nav-logo">👩‍🏫</div><div><h1>EduSafe AI</h1><span>Giáo viên</span></div></div>
+        <div class="nav-center">
+            <a href="/teacher" class="nav-role-btn active">📊 Dashboard</a>
+            <a href="/teacher/students" class="nav-role-btn">👥 Học sinh</a>
+            <a href="/teacher/reports" class="nav-role-btn">📋 Phản ánh</a>
+            <a href="/teacher/alerts" class="nav-role-btn">🚨 Cảnh báo AI</a>
+        </div>
+        <div class="nav-right">
+            <button class="nav-notif" onclick="location.href='/teacher/alerts'">🔔<span class="notif-badge" id="alertCount" style="display:none">0</span></button>
+            <div class="nav-user"><div class="nav-avatar" id="userAvatar">GV</div><div class="nav-user-info"><div class="nav-user-name" id="userName">Giáo viên</div><div class="nav-user-role">Giáo viên chủ nhiệm</div></div></div>
+        </div>
+    </nav>
+    <div class="page">
+        <div class="page-header"><h2>📊 Bảng Điều Khiển Giáo Viên</h2><p>Tổng quan an toàn lớp học và cảnh báo từ AI</p>
+            <div id="safetyLampBox" style="display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 16px;border-radius:12px;background:var(--surface-alt);width:fit-content">
+                <div id="lamp" style="width:26px;height:26px;border-radius:50%;background:#22c55e;box-shadow:0 0 12px #22c55e;transition:all .2s"></div>
+                <strong id="safetyLabelTeacher">Lớp học đang An toàn</strong>
+            </div>
+        </div>
+        <div class="bento-grid bento-4x1">
+            <div class="bento-card green"><div class="bento-icon green">👥</div><div class="bento-value" id="totalStudents">0</div><div class="bento-label">Học sinh lớp</div></div>
+            <div class="bento-card blue"><div class="bento-icon blue">📝</div><div class="bento-value" id="totalMoods">0</div><div class="bento-label">Nhật ký tuần</div></div>
+            <div class="bento-card orange"><div class="bento-icon orange">📋</div><div class="bento-value" id="pendingReports">0</div><div class="bento-label">Phản ánh chờ xử lý</div></div>
+            <div class="bento-card red"><div class="bento-icon red">🚨</div><div class="bento-value" id="criticalAlerts">0</div><div class="bento-label">Cảnh báo khẩn cấp</div></div>
+        </div>
+        <div class="bento-grid bento-2x2" style="margin-top:16px">
+            <div class="card">
+                <div class="card-header"><h3>📈 Xu Hướng Tâm Lý Tuần</h3><span style="font-size:11px;color:var(--text3)">7 ngày gần nhất</span></div>
+                <div class="card-body"><svg id="moodChart" width="100%" height="160" viewBox="0 0 400 160"></svg></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>📊 Cơ Cấu Loại Hình Phản Ánh</h3></div>
+                <div class="card-body"><div style="display:flex;align-items:center;gap:20px"><svg id="pieChart" width="140" height="140" viewBox="0 0 140 140"></svg><div id="pieLegend" style="flex:1;font-size:12px"></div></div></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>📋 Hòm Thư Phản Ánh Ẩn Danh</h3><a href="/teacher/reports" style="font-size:12px;color:var(--primary)">Xem tất cả →</a></div>
+                <div class="card-body" id="recentReports" style="max-height:220px;overflow-y:auto"><div style="text-align:center;color:var(--text3);padding:20px">Không có phản ánh mới</div></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>🚨 Cảnh Báo AI Gần Đây</h3><a href="/teacher/alerts" style="font-size:12px;color:var(--primary)">Xem tất cả →</a></div>
+                <div class="card-body" id="recentAlerts" style="max-height:220px;overflow-y:auto"><div style="text-align:center;color:var(--text3);padding:20px">Không có cảnh báo</div></div>
+            </div>
+        </div>
+    </div>
+    <script>
+    const token=localStorage.getItem('token');if(!token)location.href='/login';
+    const API={headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}};
+    async function load(){try{const r=await fetch('/api/auth/me',API);const u=await r.json();document.getElementById('userName').textContent=u.full_name;document.getElementById('userAvatar').textContent=u.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}catch(e){location.href='/login'}}
+    async function loadStats(){try{const r=await fetch('/api/teacher/dashboard',API);const d=await r.json();document.getElementById('totalStudents').textContent=d.totalStudents||0;document.getElementById('totalMoods').textContent=d.totalMoods||0;document.getElementById('pendingReports').textContent=d.pendingReports||0;document.getElementById('criticalAlerts').textContent=d.criticalAlerts||0;if(d.criticalAlerts>0){document.getElementById('alertCount').style.display='flex';document.getElementById('alertCount').textContent=d.criticalAlerts}renderMoodChart(d.weeklyMoods||[3,5,2,4,6,3,4]);renderPieChart(d.reportTypes||{physical:2,verbal:3,cyber:1,social:1});
+    const lamp=document.getElementById('lamp'),lbl=document.getElementById('safetyLabelTeacher');
+    if((d.criticalAlerts||0)>0){lamp.style.background='#ef4444';lamp.style.boxShadow='0 0 14px #ef4444';lbl.textContent='CẢNH BÁO NGUY HIỂM — Không an toàn!';lbl.style.color='#ef4444';setInterval(()=>{lamp.style.opacity=lamp.style.opacity==='0.2'?'1':'0.2'},500)}
+    else{lamp.style.background='#22c55e';lamp.style.boxShadow='0 0 12px #22c55e';lbl.textContent='Lớp học đang An toàn';lbl.style.color='var(--primary)'}}catch(e){}}
+    function renderMoodChart(data){const svg=document.getElementById('moodChart');const max=Math.max(...data,1);const today=new Date();const days=Array.from({length:7},(_,i)=>{const d=new Date(today);d.setDate(d.getDate()-(6-i));return ['CN','T2','T3','T4','T5','T6','T7'][d.getDay()]});let html='';data.forEach((v,i)=>{const x=20+i*54;const h=(v/max)*100;const y=140-h;html+='<rect x="'+x+'" y="'+y+'" width="36" height="'+h+'" rx="4" fill="var(--primary)" opacity="0.8"/>';html+='<text x="'+(x+18)+'" y="'+(y-6)+'" text-anchor="middle" font-size="10" fill="var(--text2)">'+v+'</text>';html+='<text x="'+(x+18)+'" y="155" text-anchor="middle" font-size="10" fill="var(--text3)">'+days[i]+'</text>'});svg.innerHTML=html}
+    function renderPieChart(types){const total=Object.values(types).reduce((a,b)=>a+b,0)||1;const colors={physical:'var(--red)',verbal:'var(--orange)',cyber:'var(--blue)',social:'var(--purple)'};const labels={physical:'Thể chất',verbal:'Ngôn ngữ',cyber:'Mạng',social:'Tẩy chay'};let angle=0;let paths='';Object.entries(types).forEach(([k,v])=>{const pct=v/total;const start=angle;const end=angle+pct*360;angle=end;const r=60;const cx=70;const cy=70;const x1=cx+r*Math.cos((start-90)*Math.PI/180);const y1=cy+r*Math.sin((start-90)*Math.PI/180);const x2=cx+r*Math.cos((end-90)*Math.PI/180);const y2=cy+r*Math.sin((end-90)*Math.PI/180);const large=pct>0.5?1:0;paths+='<path d="M'+cx+','+cy+' L'+x1+','+y1+' A'+r+','+r+' 0 '+large+' 1 '+x2+','+y2+' Z" fill="'+(colors[k]||'gray')+'" opacity="0.85"/>'});document.getElementById('pieChart').innerHTML=paths;document.getElementById('pieLegend').innerHTML=Object.entries(types).map(([k,v])=>'<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div style="width:10px;height:10px;border-radius:50%;background:'+(colors[k]||'gray')+'"></div>'+(labels[k]||k)+': <strong>'+v+'</strong> ('+Math.round(v/total*100)+'%)</div>').join('')}
+    async function loadReports(){try{const r=await fetch('/api/reports',API);const d=await r.json();const reports=d.reports||[];const el=document.getElementById('recentReports');if(!reports.length){el.innerHTML='<div style="text-align:center;color:var(--text3);padding:20px">Không có phản ánh</div>';return}el.innerHTML=reports.slice(0,4).map(rpt=>'<div class="alert-item '+(rpt.severity==='critical'?'critical':rpt.severity==='high'?'warning':'info')+'" style="margin-bottom:8px"><div class="alert-icon">'+(rpt.severity==='critical'?'🚨':rpt.severity==='high'?'⚠️':'📋')+'</div><div class="alert-content"><div class="alert-title">'+(rpt.student_name||'Ẩn danh')+' - <span class="badge '+(rpt.status==='resolved'?'badge-green':rpt.status==='in_progress'?'badge-orange':'badge-gray')+'">'+(rpt.status==='resolved'?'Đã xử lý':rpt.status==='in_progress'?'Đang xử lý':'Chờ xử lý')+'</span></div><div class="alert-msg">'+(rpt.description||'')+'</div><div class="alert-time">'+new Date(rpt.created_at).toLocaleString('vi')+'</div></div></div>').join('')}catch(e){}}
+    async function loadAlerts(){try{const r=await fetch('/api/alerts',API);const d=await r.json();const alerts=d.alerts||[];const el=document.getElementById('recentAlerts');if(!alerts.length){el.innerHTML='<div style="text-align:center;color:var(--text3);padding:20px">Không có cảnh báo</div>';return}el.innerHTML=alerts.slice(0,4).map(a=>'<div class="alert-item '+(a.severity==='critical'?'critical':'warning')+'" style="margin-bottom:8px"><div class="alert-icon">'+(a.severity==='critical'?'🚨':'⚠️')+'</div><div class="alert-content"><div class="alert-title">'+(a.title||'Cảnh báo AI')+'</div><div class="alert-msg">'+(a.message||'')+'</div><div class="alert-time">'+new Date(a.created_at).toLocaleString('vi')+'</div></div></div>').join('')}catch(e){}}
+    load();loadStats();loadReports();loadAlerts();
+    setInterval(function(){loadStats();loadReports();loadAlerts()},10000);
+    </script>
+</body>
+</html>

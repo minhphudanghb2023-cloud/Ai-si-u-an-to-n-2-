@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat Widget</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+
+  /* ===== Nút icon chat góc dưới phải ===== */
+  #chatToggle {
+    position: fixed; bottom: 24px; right: 24px;
+    width: 60px; height: 60px; border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border: none; cursor: pointer; color: #fff; font-size: 28px;
+    box-shadow: 0 6px 16px rgba(0,0,0,.25);
+    transition: transform .25s ease, box-shadow .25s ease;
+    z-index: 9999;
+  }
+  #chatToggle:hover { transform: scale(1.08); box-shadow: 0 8px 20px rgba(0,0,0,.3); }
+
+  /* ===== Khung chat ===== */
+  #chatWidget {
+    position: fixed; bottom: 96px; right: 24px;
+    width: 360px; max-width: calc(100vw - 48px); height: 480px;
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.2);
+    display: flex; flex-direction: column; overflow: hidden;
+    transform: scale(0); transform-origin: bottom right;
+    transition: transform .25s ease, opacity .25s ease;
+    opacity: 0; z-index: 9998;
+  }
+  #chatWidget.open { transform: scale(1); opacity: 1; }
+
+  #chatWidget header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff; padding: 14px 18px; font-weight: 600; font-size: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* ===== Vùng tin nhắn ===== */
+  #chatBody {
+    flex: 1; padding: 14px; overflow-y: auto; background: #f5f7fb;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .bubble {
+    max-width: 80%; padding: 10px 14px; border-radius: 14px;
+    font-size: 14px; line-height: 1.45; white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .bot { background: #e9ecf5; color: #333; align-self: flex-start; border-bottom-left-radius: 4px; }
+  .user { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+
+  /* ===== Loading dots ===== */
+  .typing { display: inline-flex; gap: 4px; align-items: center; padding: 12px 16px; }
+  .typing span { width: 7px; height: 7px; background: #999; border-radius: 50%; animation: bounce 1.2s infinite; }
+  .typing span:nth-child(2) { animation-delay: .2s; }
+  .typing span:nth-child(3) { animation-delay: .4s; }
+  @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+  /* ===== Ô nhập ===== */
+  #chatInputBar { display: flex; padding: 10px; border-top: 1px solid #e3e6ef; background: #fff; }
+  #chatInput { flex: 1; border: 1px solid #d8dcec; border-radius: 20px; padding: 10px 14px; font-size: 14px; outline: none; }
+  #chatSend {
+    margin-left: 8px; border: none; border-radius: 20px; padding: 0 16px;
+    background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; cursor: pointer; font-size: 14px;
+  }
+  #chatSend:disabled { opacity: .5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<button id="chatToggle" title="Chat">💬</button>
+
+<div id="chatWidget">
+  <header>🤖 EduChat Bot</header>
+  <div id="chatBody">
+    <div class="bubble bot">Xin chào! Mình là trợ lý AI. Bạn cần hỏi gì?</div>
+  </div>
+  <div id="chatInputBar">
+    <input id="chatInput" type="text" placeholder="Nhập tin nhắn..." autocomplete="off">
+    <button id="chatSend">Gửi</button>
+  </div>
+</div>
+
+<script>
+  const GEMINI_BACKEND = '/api/gemini'; // API trung gian bảo mật key trên server
+
+  const toggleBtn  = document.getElementById('chatToggle');
+  const widget     = document.getElementById('chatWidget');
+  const chatBody   = document.getElementById('chatBody');
+  const chatInput  = document.getElementById('chatInput');
+  const chatSend   = document.getElementById('chatSend');
+
+  // Mở/thu nhỏ khung chat
+  toggleBtn.addEventListener('click', () => widget.classList.toggle('open'));
+
+  function addBubble(text, who) {
+    const div = document.createElement('div');
+    div.className = 'bubble ' + who;
+    div.textContent = text;
+    chatBody.appendChild(div);
+    chatBody.scrollTop = chatBody.scrollHeight;
+    return div;
+  }
+
+  function addTyping() {
+    const div = document.createElement('div');
+    div.className = 'bubble bot typing';
+    div.innerHTML = '<span></span><span></span><span></span>';
+    chatBody.appendChild(div);
+    chatBody.scrollTop = chatBody.scrollHeight;
+    return div;
+  }
+
+  async function sendMessage() {
+    const text = chatInput.value.trim();
+    if (!text) return;
+    addBubble(text, 'user');
+    chatInput.value = '';
+    chatSend.disabled = true;
+    const typingEl = addTyping();
+
+    try {
+      const res = await fetch(GEMINI_BACKEND, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text })
+      });
+      const data = await res.json();
+      typingEl.remove();
+      const reply = data.response || data.error || '⚠️ Không nhận được phản hồi từ AI.';
+      addBubble(reply, 'bot');
+    } catch (err) {
+      typingEl.remove();
+      addBubble('⚠️ Lỗi kết nối. Vui lòng thử lại.', 'bot');
+    } finally {
+      chatSend.disabled = false;
+      chatInput.focus();
+    }
+  }
+
+  chatSend.addEventListener('click', sendMessage);
+  chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+</script>
+</body>
+</html>

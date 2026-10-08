@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>EduSafe AI - Cảnh Báo AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><div class="nav-logo">👩‍🏫</div><div><h1>EduSafe AI</h1><span>Giáo viên</span></div></div>
+        <div class="nav-center">
+            <a href="/teacher" class="nav-role-btn">📊 Dashboard</a>
+            <a href="/teacher/students" class="nav-role-btn">👥 Học sinh</a>
+            <a href="/teacher/reports" class="nav-role-btn">📋 Phản ánh</a>
+            <a href="/teacher/alerts" class="nav-role-btn active">🚨 Cảnh báo AI</a>
+        </div>
+        <div class="nav-right"><div class="nav-user"><div class="nav-avatar" id="userAvatar">GV</div><div class="nav-user-info"><div class="nav-user-name" id="userName">Giáo viên</div></div></div></div>
+    </nav>
+    <div class="page">
+        <div class="page-header"><h2>🚨 Cảnh Báo Khẩn Cấp Của AI</h2><p>Khi nhật ký học sinh có dấu hiệu trầm cảm nặng hoặc bị đe dọa bạo lực cao, AI tự động gắn cờ cảnh báo</p>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 16px;border-radius:12px;background:var(--surface-alt);width:fit-content">
+            <div id="lamp2" style="width:26px;height:26px;border-radius:50%;background:#22c55e;box-shadow:0 0 12px #22c55e"></div>
+            <strong id="safetyLabelTeacher2">Lớp học đang An toàn</strong>
+        </div>
+        </div>
+        <div class="bento-grid bento-3x1" style="margin-bottom:20px">
+            <div class="bento-card red"><div class="bento-icon red">🚨</div><div class="bento-value" id="criticalCount">0</div><div class="bento-label">Nguy cơ cao</div></div>
+            <div class="bento-card orange"><div class="bento-icon orange">⚠️</div><div class="bento-value" id="warningCount">0</div><div class="bento-label">Cảnh báo</div></div>
+            <div class="bento-card blue"><div class="bento-icon blue">📋</div><div class="bento-value" id="totalAlerts">0</div><div class="bento-label">Tổng cảnh báo</div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin:12px 0;align-items:center">
+            <label style="font-size:12px;cursor:pointer"><input type="checkbox" id="checkAllAlerts" onchange="toggleAllAlerts(this.checked)"> Chọn tất cả</label>
+            <button onclick="deleteSelectedAlerts()" style="margin-left:auto;background:#e53e3e;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer">🗑️ Xóa đã chọn</button>
+        </div>
+        <div id="alertList"></div>
+    </div>
+    <script>
+    const token=localStorage.getItem('token');if(!token)location.href='/login';
+    const API={headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}};
+    let allAlerts=[];
+    async function load(){try{const r=await fetch('/api/auth/me',API);const u=await r.json();document.getElementById('userName').textContent=u.full_name;document.getElementById('userAvatar').textContent=u.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}catch(e){location.href='/login'}}
+    async function loadAlerts(){try{const r=await fetch('/api/alerts',API);const d=await r.json();allAlerts=d.alerts||[];document.getElementById('totalAlerts').textContent=allAlerts.length;document.getElementById('criticalCount').textContent=allAlerts.filter(a=>a.severity==='critical').length;document.getElementById('warningCount').textContent=allAlerts.filter(a=>a.severity==='warning').length;render();
+    const crit=allAlerts.filter(a=>a.severity==='critical').length,lamp2=document.getElementById('lamp2'),lbl2=document.getElementById('safetyLabelTeacher2');
+    if(crit>0){lamp2.style.background='#ef4444';lamp2.style.boxShadow='0 0 14px #ef4444';lbl2.textContent='CẢNH BÁO NGUY HIỂM — Không an toàn!';lbl2.style.color='#ef4444';setInterval(()=>{lamp2.style.opacity=lamp2.style.opacity==='0.2'?'1':'0.2'},500)}
+    else{lamp2.style.background='#22c55e';lamp2.style.boxShadow='0 0 12px #22c55e';lbl2.textContent='Lớp học đang An toàn';lbl2.style.color='var(--primary)'}}catch(e){}}
+    function render(){const el=document.getElementById('alertList');if(!allAlerts.length){el.innerHTML='<div class="card"><div class="card-body" style="text-align:center;color:var(--text3);padding:40px">🎉 Không có cảnh báo nào. Lớp học đang an toàn!</div></div>';return}el.innerHTML=allAlerts.map(a=>'<div class="alert-item '+(a.severity==='critical'?'critical':'warning')+'" style="margin-bottom:12px;border-radius:12px;padding:16px"><div class="alert-icon" style="width:40px;height:40px;font-size:16px">'+(a.severity==='critical'?'🚨':'⚠️')+'</div><div class="alert-content" style="flex:1"><div class="alert-title" style="font-size:14px;margin-bottom:4px">'+(a.title||'Cảnh báo AI')+'</div><div class="alert-msg" style="margin-bottom:8px">'+(a.message||'')+'</div><div class="alert-time">'+new Date(a.created_at).toLocaleString('vi')+'</div></div><input type="checkbox" class="alert-cb" value="'+a.id+'" style="align-self:center;margin:0 6px"><button class="btn btn-sm btn-outline" onclick="markRead('+a.id+')" style="align-self:flex-start">Đã đọc</button><button class="btn btn-sm btn-outline" style="color:#e53e3e;align-self:flex-start" onclick="deleteAlert('+a.id+')">🗑️ Xóa</button></div>').join('')}
+    async function markRead(id){await fetch('/api/alerts/'+id,{method:'PUT',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({status:'read'})});loadAlerts()}
+    async function deleteAlert(id){if(!confirm('Xóa cảnh báo này?'))return;await fetch('/api/alerts/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});loadAlerts()}
+    function toggleAllAlerts(v){document.querySelectorAll('.alert-cb').forEach(c=>c.checked=v)}
+    async function deleteSelectedAlerts(){const ids=[...document.querySelectorAll('.alert-cb:checked')].map(c=>c.value);if(!ids.length){alert('Chưa chọn cảnh báo nào');return}if(!confirm('Xóa '+ids.length+' cảnh báo đã chọn?'))return;for(const id of ids){await fetch('/api/alerts/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+token}})}loadAlerts()}
+    load();loadAlerts();
+    </script>
+</body>
+</html>

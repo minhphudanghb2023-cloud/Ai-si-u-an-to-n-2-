@@ -1,0 +1,65 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>EduSafe AI - Chat Trợ lý</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><div class="nav-logo">🛡️</div><div><h1>EduSafe AI</h1><span>Học Sinh</span></div></div>
+        <div class="nav-center">
+            <a href="/student" class="nav-role-btn">Trang chủ</a>
+            <a href="/student/chat" class="nav-role-btn active">Chat AI</a>
+            <a href="/student/mood" class="nav-role-btn">Nhật ký</a>
+            <a href="/student/report" class="nav-role-btn">Báo cáo</a>
+            <a href="/student/simulate" class="nav-role-btn">Mô phỏng</a>
+            <a href="/student/quiz" class="nav-role-btn">Trắc nghiệm</a>
+            <a href="/student/guide" class="nav-role-btn">Cẩm nang</a>
+        </div>
+        <div class="nav-right"><div class="nav-user"><div class="nav-avatar" id="userAvatar">HS</div><div class="nav-user-info"><div class="nav-user-name" id="userName">Học sinh</div></div></div></div>
+    </nav>
+    <div class="page">
+        <div class="page-header"><h2>💬 Trò chuyện với Trợ lý AI</h2><p>Chia sẻ cảm xúc, tâm sự với AI hoàn toàn bảo mật</p></div>
+        <div class="card">
+            <div class="chat-box">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="chat-msg ai"><div class="msg-avatar">🤖</div><div class="msg-bubble">Xin chào bạn! Mình là EduSafe AI, trợ lý tư vấn thân thiện. Bạn có thể chia sẻ mọi điều với mình. Mình luôn lắng nghe và hỗ trợ bạn! 💚</div></div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." onkeypress="if(event.key==='Enter')sendMsg()">
+                    <button class="btn btn-primary" onclick="sendMsg()">Gửi</button>
+                </div>
+            </div>
+        </div>
+        <h4 style="margin:14px 0 8px">🕒 Lịch sử đoạn chat</h4>
+        <div id="chatSessions" style="display:flex;gap:8px;flex-wrap:wrap;max-height:120px;overflow-y:auto"></div>
+        <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-outline" onclick="quickChat('Mình bị các bạn trong lớp trêu chọc')">😢 Bị trêu chọc</button>
+            <button class="btn btn-outline" onclick="quickChat('Mình cảm thấy cô đơn ở trường')">😔 Cô đơn</button>
+            <button class="btn btn-outline" onclick="quickChat('Mình bị áp lực học tập quá lớn')">😰 Áp lực học</button>
+            <button class="btn btn-outline" onclick="quickChat('Mình muốn kể về một bạn bị bắt nạt')">⚠️ Báo cáo</button>
+        </div>
+    </div>
+    <script>
+    const token=localStorage.getItem('token');if(!token)location.href='/login';
+    let sending=false;let sessionId='';
+    async function load(){try{const r=await fetch('/api/auth/me',{headers:{'Authorization':'Bearer '+token}});const u=await r.json();document.getElementById('userName').textContent=u.full_name;document.getElementById('userAvatar').textContent=u.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}catch(e){}}
+    function addMsg(text,isUser){const el=document.getElementById('chatMessages');const div=document.createElement('div');div.className='chat-msg '+(isUser?'user':'ai');div.innerHTML='<div class="msg-avatar">'+(isUser?'👤':'🤖')+'</div><div class="msg-bubble">'+text+'</div>';el.appendChild(div);el.scrollTop=el.scrollHeight}
+    async function sendMsg(){const input=document.getElementById('chatInput');const text=input.value.trim();if(!text||sending)return;sending=true;input.value='';addMsg(text,true);addMsg('Đang suy nghĩ... 🤔',false);try{const r=await fetch('/api/chat',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({message:text,session_id:sessionId})});const d=await r.json();document.getElementById('chatMessages').lastChild.remove();addMsg(d.response||d.error||'Xin lỗi, mình gặp lỗi. Bạn thử lại nhé!',false);if(d.session_id)sessionId=d.session_id;if(d.risk&&d.risk.score>=30){const levelText={critical:'NGUY HIỂM - Cần hành động ngay!',high:'Cao - Cần theo dõi chặt chẽ',medium:'Trung bình - Cần chú ý',low:'Thấp - Cần theo dõi thêm'};addMsg('⚠️ [CẢNH BÁO] Mức độ nguy cơ: '+levelText[d.risk.level]+' ('+d.risk.score+'/100)',false)}loadSessions()}catch(e){document.getElementById('chatMessages').lastChild.remove();addMsg('Lỗi kết nối. Bạn thử lại sau nhé!',false)}sending=false}
+    async function loadSessions(){try{const r=await fetch('/api/chat/sessions',{headers:{'Authorization':'Bearer '+token}});const d=await r.json();const list=d.sessions||[];const el=document.getElementById('chatSessions');el.innerHTML=list.map((s,i)=>'<span style="display:inline-flex;align-items:center;margin-bottom:4px"><button class="btn btn-outline" style="font-size:12px;text-align:left" onclick="openSession(\''+s.session_id+'\')">'+(i===0?'🆕 ':'💬 ')+new Date(s.created_at).toLocaleString('vi')+'<br><span style="font-size:11px;color:var(--text2)">'+(s.description||'').slice(0,40)+'</span></button><button class="btn btn-outline" style="font-size:12px;color:#e53e3e;margin-left:2px" onclick="deleteSession(\''+s.session_id+'\')">🗑</button></span>').join(' ')||'<span style="color:var(--text3);font-size:13px">Chưa có đoạn chat nào</span>'}catch(e){}}
+    async function deleteSession(sid){if(!confirm('Xóa đoạn chat này?'))return;await fetch('/api/chat/sessions/'+sid,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});if(sessionId===sid){sessionId='';document.getElementById('chatMessages').innerHTML=''}loadSessions()}
+    async function openSession(sid){try{sessionId=sid;const r=await fetch('/api/chat/messages/'+sid,{headers:{'Authorization':'Bearer '+token}});const d=await r.json();const box=document.getElementById('chatMessages');box.innerHTML='';(d.messages||[]).forEach(m=>addMsg(m.content,m.role==='user'))}catch(e){}}
+    function quickChat(text){document.getElementById('chatInput').value=text;sendMsg()}
+    load();loadSessions();
+    </script>
+    <!-- ... Các đoạn code giao diện web của bạn ở phía trên ... -->
+
+    <!-- DÁN ĐOẠN MÃ SCRIPT CHATBOT VÀO ĐÂY -->
+   
+</body>
+</html>
+
+</body>
+</html>

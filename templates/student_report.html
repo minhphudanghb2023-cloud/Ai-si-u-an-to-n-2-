@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>EduSafe AI - Báo cáo Ẩn danh</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><div class="nav-logo">🛡️</div><div><h1>EduSafe AI</h1><span>Học Sinh</span></div></div>
+        <div class="nav-center">
+            <a href="/student" class="nav-role-btn">Trang chủ</a>
+            <a href="/student/chat" class="nav-role-btn">Chat AI</a>
+            <a href="/student/mood" class="nav-role-btn">Nhật ký</a>
+            <a href="/student/report" class="nav-role-btn active">Báo cáo</a>
+            <a href="/student/simulate" class="nav-role-btn">Mô phỏng</a>
+            <a href="/student/quiz" class="nav-role-btn">Trắc nghiệm</a>
+            <a href="/student/guide" class="nav-role-btn">Cẩm nang</a>
+        </div>
+        <div class="nav-right"><div class="nav-user"><div class="nav-avatar" id="userAvatar">HS</div><div class="nav-user-info"><div class="nav-user-name" id="userName">Học sinh</div></div></div></div>
+    </nav>
+    <div class="page">
+        <div class="page-header"><h2>🚨 Cổng Báo Cáo Ẩn Danh Khẩn Cấp</h2><p>Báo cáo ẩn danh. Thông tin được mã hóa và gửi trực tiếp đến giáo viên chủ nhiệm</p></div>
+        <div class="bento-grid bento-3x1" style="margin-bottom:20px">
+            <div class="alert-item critical" style="margin:0;border-radius:12px"><div class="alert-icon">🛡️</div><div class="alert-content"><div class="alert-title">100% Ẩn danh</div><div class="alert-msg">Thông tin cá nhân được bảo mật tuyệt đối</div></div></div>
+            <div class="alert-item warning" style="margin:0;border-radius:12px"><div class="alert-icon">🔒</div><div class="alert-content"><div class="alert-title">Mã hóa Tự động</div><div class="alert-msg">Dữ liệu được mã hóa trước khi gửi</div></div></div>
+            <div class="alert-item info" style="margin:0;border-radius:12px"><div class="alert-icon">⚡</div><div class="alert-content"><div class="alert-title">Xử lý Nhanh chóng</div><div class="alert-msg">Thông báo ngay lập tức đến giáo viên</div></div></div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h3>📝 Gửi Báo Cáo Mới</h3></div>
+            <div class="card-body">
+                <div class="form-group"><label>Loại bạo lực</label>
+                    <select class="form-input" id="reportType"><option value="">-- Chọn loại --</option><option value="physical">💪 Bạo lực thể chất (đánh, xô đẩy, gây thương tích)</option><option value="verbal">😠 Bạo lực ngôn ngữ (chửi bới, xúc phạm, đe dọa)</option><option value="cyber">📱 Bạo lực mạng (tin nhắn đe dọa, lan truyền tin xấu)</option><option value="social">🚫 Tẩy chay (cô lập, không cho chơi cùng)</option><option value="other">❓ Khác</option></select>
+                </div>
+                <div class="form-group"><label>Mô tả sự việc</label><textarea class="form-textarea" id="reportDesc" rows="4" placeholder="Hãy mô tả chi tiết những gì đã xảy ra..."></textarea></div>
+                <div class="form-group"><label>📍 Địa điểm xảy ra (nếu biết)</label><input type="text" class="form-input" id="reportLocation" placeholder="VD: Sân trường, Nhà vệ sinh, Lớp 9A..."></div>
+                <div class="form-group"><label>👥 Nhân chứng (nếu có)</label><input type="text" class="form-input" id="reportWitness" placeholder="Ai đã chứng kiến sự việc?"></div>
+                <div class="form-group"><label>Mức độ nghiêm trọng</label>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <button class="btn btn-outline severity-btn" onclick="setSeverity(this,'low')">🟢 Thấp</button>
+                        <button class="btn btn-outline severity-btn active" onclick="setSeverity(this,'medium')" style="background:var(--orange);color:white;border-color:var(--orange)">🟡 Trung bình</button>
+                        <button class="btn btn-outline severity-btn" onclick="setSeverity(this,'high')">🔴 Cao</button>
+                        <button class="btn btn-outline severity-btn" onclick="setSeverity(this,'critical')">🚨 Khẩn cấp</button>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="submitReport()" id="submitBtn">🚨 Gửi Báo Cáo Ẩn Danh</button>
+            </div>
+        </div>
+        <div class="card" style="margin-top:20px"><div class="card-header"><h3>📋 Báo cáo đã gửi</h3></div><div class="card-body" id="myReports"><div style="text-align:center;color:var(--text3);padding:20px">Chưa có báo cáo nào</div></div></div>
+    </div>
+    <script>
+    const token=localStorage.getItem('token');if(!token)location.href='/login';let selectedSeverity='medium';
+    async function load(){try{const r=await fetch('/api/auth/me',{headers:{'Authorization':'Bearer '+token}});const u=await r.json();document.getElementById('userName').textContent=u.full_name;document.getElementById('userAvatar').textContent=u.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}catch(e){}loadReports()}
+    function setSeverity(el,sev){document.querySelectorAll('.severity-btn').forEach(b=>{b.style.background='';b.style.color='';b.style.borderColor='';b.classList.remove('active')});el.classList.add('active');const colors={low:'var(--primary)',medium:'var(--orange)',high:'var(--red)',critical:'#7f1d1d'};el.style.background=colors[sev];el.style.color='white';el.style.borderColor=colors[sev];selectedSeverity=sev}
+    async function submitReport(){const type=document.getElementById('reportType').value;const desc=document.getElementById('reportDesc').value;if(!type||!desc){alert('Vui lòng chọn loại bạo lực và mô tả sự việc');return}const btn=document.getElementById('submitBtn');btn.textContent='⏳ Đang gửi...';btn.disabled=true;try{const r=await fetch('/api/reports',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({report_type:type,description:desc,location:document.getElementById('reportLocation').value,witnesses:document.getElementById('reportWitness').value,severity:selectedSeverity})});const d=await r.json();if(d.id){alert('✅ Báo cáo đã được gửi thành công! Cảm ơn bạn đã dũng cảm chia sẻ.');document.getElementById('reportDesc').value='';document.getElementById('reportLocation').value='';document.getElementById('reportWitness').value='';loadReports()}}catch(e){alert('❌ Lỗi gửi báo cáo. Thử lại sau.');}btn.textContent='🚨 Gửi Báo Cáo Ẩn Danh';btn.disabled=false}
+    async function loadReports(){try{const r=await fetch('/api/reports',{headers:{'Authorization':'Bearer '+token}});const d=await r.json();const reports=d.reports||[];const el=document.getElementById('myReports');if(!reports.length){el.innerHTML='<div style="text-align:center;color:var(--text3);padding:20px">Chưa có báo cáo</div>';return}el.innerHTML=reports.map(rpt=>'<div style="padding:12px;border-bottom:1px solid var(--border)"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span class="badge '+(rpt.severity==='critical'?'badge-red':rpt.severity==='high'?'badge-orange':'badge-blue')+'">'+(rpt.severity==='critical'?'🚨 Khẩn cấp':rpt.severity==='high'?'🔴 Cao':'🔵 Trung bình')+'</span><span style="font-size:12px;color:var(--text3)">'+new Date(rpt.created_at).toLocaleString('vi')+'</span></div><div style="font-size:13px">'+(rpt.description||'')+'</div><div style="font-size:11px;color:var(--text3);margin-top:4px">📍 '+((rpt.location||'Không rõ'))+' | Trạng thái: <span class="badge '+(rpt.status==='resolved'?'badge-green':rpt.status==='in_progress'?'badge-orange':'badge-gray')+'">'+(rpt.status==='resolved'?'Đã xử lý':rpt.status==='in_progress'?'Đang xử lý':'Chờ xử lý')+'</span></div></div>').join('')}catch(e){}}
+    load();
+    </script>
+</body>
+</html>

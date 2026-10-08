@@ -1,0 +1,48 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>EduSafe AI - Mô phỏng Ứng phó</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><div class="nav-logo">🛡️</div><div><h1>EduSafe AI</h1><span>Học Sinh</span></div></div>
+        <div class="nav-center">
+            <a href="/student" class="nav-role-btn">Trang chủ</a>
+            <a href="/student/chat" class="nav-role-btn">Chat AI</a>
+            <a href="/student/mood" class="nav-role-btn">Nhật ký</a>
+            <a href="/student/report" class="nav-role-btn">Báo cáo</a>
+            <a href="/student/simulate" class="nav-role-btn active">Mô phỏng</a>
+            <a href="/student/quiz" class="nav-role-btn">Trắc nghiệm</a>
+            <a href="/student/guide" class="nav-role-btn">Cẩm nang</a>
+        </div>
+        <div class="nav-right"><div class="nav-user"><div class="nav-avatar" id="userAvatar">HS</div><div class="nav-user-info"><div class="nav-user-name" id="userName">Học sinh</div></div></div></div>
+    </nav>
+    <div class="page">
+        <div class="page-header"><h2>🎮 Trò Chơi Mô Phỏng Ứng Phó</h2><p>Thử thách bản thân với các tình huống bạo lực học đường thực tế</p></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div><span class="badge badge-green">✅ Hoàn thành: <span id="completedCount">0</span></span> <span class="badge badge-blue">⭐ Điểm: <span id="simScore">0</span></span></div>
+            <button class="btn btn-outline" onclick="resetSim()">🔄 Chơi lại từ đầu</button>
+        </div>
+        <div id="simContainer"></div>
+    </div>
+    <script>
+    const token=localStorage.getItem('token');if(!token)location.href='/login';
+    const scenarios=[
+        {id:1,title:"Tình huống 1: Bị bắt nạt trong giờ ra chơi",scenario:"Bạn đang chơi ở sân trường thì một nhóm học sinh lớp trên đến gần, đẩy bạn và nói: “Ê, đưa tiền đây, không thì đừng hòng về nhà!”",options:[{text:"Đánh lại để tự vệ",correct:false,feedback:"Đánh lại có thể làm tình hình tệ hơn, bạn có thể bị thương hoặc bị kỷ luật. Hãy tìm cách an toàn hơn!"},{text:"Im lặng đưa tiền cho chúng",correct:false,feedback:"Im lặng chấp nhận có thể khiến chúng tiếp tục bắt nạt bạn và những người khác. Bạn cần hành động nhưng theo cách an toàn!"},{text:"Nói lớn: “Tôi sẽ báo giáo viên!” rồi chạy đến nơi đông người",correct:true,feedback:"Tuyệt vời! Bạn đã xử lý khôn khéo. Bước 1: Tạo khoảng cách an toàn. Bước 2: Cho biết sẽ báo giáo viên. Bước 3: Chạy đến nơi đông người. Đây là cách tự vệ thông minh!"},{text:"Cầm điện thoại quay video làm bằng chứng",correct:false,feedback:"Quay video có thể khiến chúng tức giận và hành hung bạn. An toàn của bạn là ưu tiên số 1! Hãy chạy đến nơi an toàn trước."}]},
+        {id:2,title:"Tình huống 2: Bị cô lập trong lớp",scenario:"Bạn mới chuyển trường. Trong lớp, tất cả các bạn đều có nhóm riêng, không ai nói chuyện với bạn. Hôm nay, một bạn nói với những người khác: “Đừng chơi với bạn ấy, kỳ lạ lắm!” và tất cả đều tránh xa bạn.",options:[{text:"Phớt lờ và chờ mọi người tự thay đổi",correct:false,feedback:"Chờ đợi có thể khiến bạn cảm thấy cô đơn lâu hơn. Bạn cần chủ động tìm sự giúp đỡ!"},{text:"Nói lại với giọng giận dữ để dằn mặt",correct:false,feedback:"Phản ứng giận dữ có thể làm mọi thứ tệ hơn. Hãy bình tĩnh và tìm cách giải quyết thông minh hơn!"},{text:"Kể cho giáo viên chủ nhiệm hoặc người thân và nhờ giúp đỡ",correct:true,feedback:"Xuất sắc! Khi gặp khó khăn, việc nhờ giúp đỡ là dấu hiệu của sự dũng cảm, không phải yếu đuối. Giáo viên và gia đình sẽ hỗ trợ bạn!"},{text:"Tự mình tránh xa tất cả mọi người",correct:false,feedback:"Tự cô lập sẽ khiến bạn càng buồn hơn. Hãy mở lòng tìm sự giúp đỡ từ người lớn tin cậy!"}]},
+        {id:3,title:"Tình huống 3: Phát hiện bạn bị bạo lực mạng",scenario:"Bạn thấy một bạn trong lớp đăng ảnh chế xấu hổ của một bạn khác lên nhóm lớp. Nhiều bạn like và bình luận chia sẻ. Bạn thấy việc này sai nhưng sợ bị ghét nếu lên tiếng.",options:[{text:"Cũng like và share để hòa nhập với mọi người",correct:false,feedback:"Chia sẻ nội dung xấu khiến bạn trở thành đồng phạm. Bạn cũng có thể trở thành nạn nhân!"},{text:"Phớt lờ, không phải chuyện của mình",correct:false,feedback:"Phớt lờ cũng là một hình thức tiếp tay cho bạo lực. Nếu bạn là nạn nhân, bạn cũng muốn ai đó lên tiếng giúp mình!"},{text:"Nhắn tin riêng khuyên bạn dừng lại và báo giáo viên",correct:true,feedback:"Hoàn hảo! Bạn đã hành động đúng đắn. Bước 1: Nhắn tin khuyên bạn kia. Bước 2: Báo cho giáo viên. Bạn đã bảo vệ được nạn nhân và ngăn chặn bạo lực lan rộng!"},{text:"Chụp màn hình làm bằng chứng nhưng không nói gì",correct:false,feedback:"Lưu bằng chứng là tốt, nhưng bạn cũng nên hành động để giúp nạn nhân ngay lúc đó!"}]},
+        {id:4,title:"Tình huống 4: Áp lực điểm số từ gia đình",scenario:"Bố mẹ bạn rất nghiêm khắc về điểm số. Kỳ thi vừa rồi bạn đạt 7 điểm, nhưng bố nói: “7 điểm? Con có biết bố mẹ vất vả thế nào không? Nhìn con nhà người ta mà học!” Bạn cảm thấy rất áp lực và tuyệt vọng.",options:[{text:"Tự trách mình và cố học nhiều hơn để đạt điểm cao",correct:false,feedback:"Cố gắng là tốt, nhưng tự trách mình quá mức có thể gây hại cho sức khỏe tinh thần. Bạn cần cân bằng!"},{text:"Giấu điểm và nói dối bố mẹ",correct:false,feedback:"Nói dối sẽ khiến bạn căng thẳng hơn và mất lòng tin với bố mẹ. Hãy nói sự thật và giải thích!"},{text:"Kể cho bố mẹ cảm xúc thật của mình và mong họ thấu hiểu hơn",correct:true,feedback:"Tuyệt vời! Giao tiếp cởi mở với gia đình là cách tốt nhất. Bạn có thể nói: “Con hiểu bố mẹ muốn tốt cho con, nhưng những lời đó khiến con thấy áp lực và buồn.” Bố mẹ sẽ hiểu hơn!"},{text:"Chán nản và không muốn đi học nữa",correct:false,feedback:"Bỏ cuộc không phải giải pháp. Hãy tìm sự giúp đỡ từ người tin cậy — giáo viên, người thân, hoặc đường dây nóng hỗ trợ tâm lý!"}]},
+        {id:5,title:"Tình huống 5: Chứng kiến bạn bị đánh",scenario:"Bạn đang ở trong lớp và thấy một bạn nhỏ hơn bị một bạn lớn hơn tát vào mặt. Bạn nhỏ khóc nhưng không dám nói gì. Lớp gần như vắng người, chỉ có vài bạn nữa nhưng họ đang nói chuyện riêng.",options:[{text:"Đứng dậy hô to gọi giáo viên đến",correct:true,feedback:"Hành động dũng cảm! Bằng cách gọi giáo viên, bạn đã bảo vệ nạn nhân và ngăn chặn hành vi bạo lực. Đây là cách ứng xử đúng đắn!"},{text:"Tiếp tục làm việc riêng, giả vờ không thấy",correct:false,feedback:"Im lặng trước bạo lực có thể khiến nạn nhân cảm thấy cô đơn hơn và kẻ bắt nạt tiếp tục hành vi. Hãy lên tiếng!"},{text:"Đi thẳng đến kẻ bắt nạt và nói “Dừng lại ngay!”",correct:false,feedback:"Ý định tốt nhưng có thể nguy hiểm cho bạn. Tốt nhất là gọi người lớn đến giải quyết!"},{text:"Quay video làm bằng chứng rồi báo giáo viên",correct:false,feedback:"Quay video có thể thu hút sự chú ý và khiến kẻ bắt nạt tức giận. An toàn của bạn và nạn nhân là ưu tiên — hãy gọi giáo viên ngay!"}]}
+    ];
+    let simState=JSON.parse(localStorage.getItem('simState')||'{}');if(!simState.scores)simState={scores:{},completed:[]};
+    function render(){const el=document.getElementById('simContainer');document.getElementById('completedCount').textContent=simState.completed.length;document.getElementById('simScore').textContent=simState.completed.reduce((s,id)=>s+(simState.scores[id]||0),0);el.innerHTML=scenarios.map(s=>{const done=simState.completed.includes(s.id);const score=simState.scores[s.id]||0;return '<div class="sim-card"><h3 style="font-size:16px;margin-bottom:12px">'+s.title+'</h3><div class="sim-scenario">'+s.scenario+'</div><div class="sim-options" id="opts-'+s.id+'">'+s.options.map((o,i)=>'<button class="sim-option" onclick="answer('+s.id+','+i+')" '+(done?'disabled style="opacity:0.6"':'')+'>'+o.text+'</button>').join('')+'</div>'+(done?'<div class="sim-result '+(score>0?'good':'bad')+'"><strong>'+(score>0?'✅ Đúng!':'❌ Chưa tối ưu')+'</strong> Bạn đã hoàn thành tình huống này. Điểm: '+score+'/25</div>':'')+'</div>'}).join('')}
+    function answer(scenarioId,optionIdx){const s=scenarios.find(x=>x.id===scenarioId);const o=s.options[optionIdx];const opts=document.getElementById('opts-'+scenarioId);opts.innerHTML=s.options.map((x,i)=>'<div class="sim-option '+(i===optionIdx?(o.correct?'correct':'wrong'):'')+' '+(x.correct?'correct':'')+'" style="cursor:default">'+x.text+(i===optionIdx?'<div style="margin-top:8px;font-size:12px;color:var(--text2)">'+x.feedback+'</div>':'')+(x.correct&&i!==optionIdx?'<div style="margin-top:4px;font-size:11px;color:var(--primary)">✅ Đáp án đúng</div>':'')+'</div>').join('');if(!simState.completed.includes(scenarioId)){simState.completed.push(scenarioId);simState.scores[scenarioId]=o.correct?25:0;localStorage.setItem('simState',JSON.stringify(simState))}render()}
+    function resetSim(){simState={scores:{},completed:[]};localStorage.setItem('simState',JSON.stringify(simState));render()}
+    async function load(){try{const r=await fetch('/api/auth/me',{headers:{'Authorization':'Bearer '+token}});const u=await r.json();document.getElementById('userName').textContent=u.full_name;document.getElementById('userAvatar').textContent=u.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}catch(e){}}
+    load();render();
+    </script>
+</body>
+</html>

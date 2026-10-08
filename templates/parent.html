@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>EduSafe AI - Phụ huynh</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><div class="nav-logo">👨‍👩‍👧</div><div><h1>EduSafe AI</h1><span>Phụ huynh</span></div></div>
+        <div class="nav-center">
+            <a href="/parent" class="nav-role-btn active">🏠 Trang chủ</a>
+        </div>
+        <div class="nav-right"><div class="nav-user"><div class="nav-avatar" id="userAvatar">PH</div><div class="nav-user-info"><div class="nav-user-name" id="userName">Phụ huynh</div><div class="nav-user-role">Phụ huynh</div></div></div></div>
+    </nav>
+    <div class="page">
+        <div class="page-header"><h2>👨‍👩‍👧 Không Gian Phụ Huynh Đồng Hành</h2><p>Theo dõi sức khỏe tinh thần và đồng hành cùng con yêu</p></div>
+        <div class="bento-grid bento-3x1" style="margin-bottom:20px">
+            <div class="bento-card green"><div class="bento-icon green">👶</div><div class="bento-value" id="childCount">0</div><div class="bento-label">Con đang theo dõi</div></div>
+            <div class="bento-card blue"><div class="bento-icon blue">📊</div><div class="bento-value" id="avgMood">--</div><div class="bento-label">Chỉ số An tâm TB</div></div>
+            <div class="bento-card orange"><div class="bento-icon orange">🔔</div><div class="bento-value" id="alerts">0</div><div class="bento-label">Thông báo phối hợp</div></div>
+        </div>
+        <div class="bento-grid bento-2x2">
+            <div class="card">
+                <div class="card-header"><h3>👶 Tình Hình Con Em</h3></div>
+                <div class="card-body" id="childrenList"><div style="text-align:center;color:var(--text3);padding:20px">Chưa liên kết với học sinh nào</div></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>📖 Cẩm Nang Cha Mẹ</h3></div>
+                <div class="card-body">
+                    <div style="display:flex;flex-direction:column;gap:8px">
+                        <div class="alert-item info" style="margin:0"><div class="alert-icon">🔍</div><div class="alert-content"><div class="alert-title">Nhận biết con bị bắt nạt</div><div class="alert-msg">Con thường xuyên sợ đi học, sụt cân đột ngột, hay có vết thương khó giải thích.</div></div></div>
+                        <div class="alert-item info" style="margin:0"><div class="alert-icon">💬</div><div class="alert-content"><div class="alert-title">Cách mở lòng trò chuyện</div><div class="alert-msg">Hỏi con hôm nay thế nào, không phán xét đúng sai, lắng nghe nhiều hơn nói.</div></div></div>
+                        <div class="alert-item info" style="margin:0"><div class="alert-icon">📞</div><div class="alert-content"><div class="alert-title">Tổng đài hỗ trợ: 111</div><div class="alert-msg">Miễn phí 24/7 - Hỗ trợ mọi vấn đề về trẻ em</div></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    const token=localStorage.getItem('token');if(!token)location.href='/login';
+    const API={headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}};
+    async function load(){try{const r=await fetch('/api/auth/me',API);const u=await r.json();document.getElementById('userName').textContent=u.full_name;document.getElementById('userAvatar').textContent=u.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();loadChildren()}catch(e){location.href='/login'}}
+    async function loadChildren(){try{const r=await fetch('/api/parent/children',API);const d=await r.json();const children=d.children||[];document.getElementById('childCount').textContent=children.length;const el=document.getElementById('childrenList');if(!children.length){el.innerHTML='<div style="text-align:center;color:var(--text3);padding:20px">Chưa liên kết. Vui lòng liên hệ giáo viên để liên kết tài khoản phụ huynh.</div>';return}el.innerHTML=children.map(c=>{const mood=c.safety_score||85;const moodLabel=mood>=70?'An tâm':mood>=40?'Lo ngại':'Báo động';const moodClass=mood>=70?'badge-green':mood>=40?'badge-orange':'badge-red';return '<div style="display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--border)"><div style="width:40px;height:40px;background:var(--primary-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px">👶</div><div style="flex:1"><div style="font-size:14px;font-weight:600">'+c.full_name+'</div><div style="font-size:12px;color:var(--text2)">Lớp: '+(c.class_name||'N/A')+' | Mã: '+(c.student_code||'N/A')+'</div></div><span class="badge '+moodClass+'">'+moodLabel+' '+mood+'/100</span></div>'}).join('');if(children.length>0){const avg=Math.round(children.reduce((s,c)=>s+(c.safety_score||85),0)/children.length);document.getElementById('avgMood').textContent=avg;document.getElementById('avgMood').style.color=avg>=70?'var(--primary)':avg>=40?'var(--orange)':'var(--red)'}}catch(e){}}
+    load();
+    </script>
+</body>
+</html>

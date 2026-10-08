@@ -1,0 +1,74 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>EduSafe AI - Nhật Ký Cảm xúc</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><div class="nav-logo">🛡️</div><div><h1>EduSafe AI</h1><span>Học Sinh</span></div></div>
+        <div class="nav-center">
+            <a href="/student" class="nav-role-btn">Trang chủ</a>
+            <a href="/student/chat" class="nav-role-btn">Chat AI</a>
+            <a href="/student/mood" class="nav-role-btn active">Nhật ký</a>
+            <a href="/student/report" class="nav-role-btn">Báo cáo</a>
+            <a href="/student/simulate" class="nav-role-btn">Mô phỏng</a>
+            <a href="/student/quiz" class="nav-role-btn">Trắc nghiệm</a>
+            <a href="/student/guide" class="nav-role-btn">Cẩm nang</a>
+        </div>
+        <div class="nav-right"><div class="nav-user"><div class="nav-avatar" id="userAvatar">HS</div><div class="nav-user-info"><div class="nav-user-name" id="userName">Học sinh</div></div></div></div>
+    </nav>
+    <div class="page">
+        <div class="page-header"><h2>📝 Nhật Ký Cảm Xúc Thông Minh</h2><p>Chọn trạng thái cảm xúc và viết tâm sự. AI sẽ phân tích và đưa ra lời khuyên</p></div>
+        <div class="card" style="margin-bottom:20px">
+            <div class="card-header"><h3>Hôm nay bạn cảm thấy thế nào?</h3></div>
+            <div class="card-body">
+                <div class="mood-grid">
+                    <div class="mood-btn" onclick="selectMood(this,'vui','Rất vui')"><div class="mood-emoji">😊</div><div style="font-size:12px">Vui vẻ</div></div>
+                    <div class="mood-btn" onclick="selectMood(this,'binhthuong','Bình thường')"><div class="mood-emoji">😐</div><div style="font-size:12px">Bình thường</div></div>
+                    <div class="mood-btn" onclick="selectMood(this,'buon','Buồn bã')"><div class="mood-emoji">😢</div><div style="font-size:12px">Buồn</div></div>
+                    <div class="mood-btn" onclick="selectMood(this,'loangiang','Lo lắng')"><div class="mood-emoji">😰</div><div style="font-size:12px">Lo lắng</div></div>
+                    <div class="mood-btn" onclick="selectMood(this,'tucgian','Tức giận')"><div class="mood-emoji">😡</div><div style="font-size:12px">Tức giận</div></div>
+                </div>
+                <div class="form-group"><label>Buổi trong ngày</label><select id="moodPeriod" class="form-input" style="text-align:left"><option value="sáng">Sáng</option><option value="trưa" selected>Trưa</option><option value="chiều">Chiều</option></select></div>
+                <div class="form-group"><label>Hôm nay bạn muốn chia sẻ điều gì?</label><textarea class="form-textarea" id="moodNote" rows="4" placeholder="Viết tâm sự của bạn... AI sẽ phân tích và đưa ra lời khuyên phù hợp"></textarea></div>
+                <button class="btn btn-primary" onclick="saveMood()" id="saveBtn" disabled>💾 Lưu Nhật ký</button>
+            </div>
+        </div>
+        <div id="moodResult" style="display:none">
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header"><h3>🤖 Phân tích từ AI</h3></div>
+                <div class="card-body">
+                    <div style="display:flex;gap:16px;margin-bottom:16px">
+                        <div style="flex:1;text-align:center;padding:16px;background:var(--surface-alt);border-radius:12px"><div style="font-size:28px;margin-bottom:4px" id="resultEmoji">😊</div><div style="font-size:13px;font-weight:600" id="resultMood">Vui vẻ</div></div>
+                        <div style="flex:1;text-align:center;padding:16px;border-radius:12px" id="safetyBox"><div style="font-size:28px;font-weight:700;margin-bottom:4px" id="resultScore">85</div><div style="font-size:13px;font-weight:600" id="resultSafety">An toàn</div></div>
+                    </div>
+                    <div style="padding:12px;background:var(--primary-bg);border-radius:8px;border-left:4px solid var(--primary)"><div style="font-size:13px;line-height:1.6" id="resultAdvice"></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="card"><div class="card-header"><h3>📅 Lịch sử Nhật ký</h3></div>
+    <div style="display:flex;gap:8px;padding:8px 16px;align-items:center">
+        <label style="font-size:12px;cursor:pointer"><input type="checkbox" id="checkAllMood" onchange="toggleAllMood(this.checked)"> Chọn tất cả</label>
+        <button onclick="deleteSelected()" style="margin-left:auto;background:#e53e3e;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer">🗑️ Xóa đã chọn</button>
+    </div>
+    <div class="card-body" id="moodHistory"><div style="text-align:center;color:var(--text3);padding:20px">Chưa có nhật ký nào</div></div></div>
+    <div class="card"><div class="card-header"><h3>🗄️ Nhật ký đã lưu trữ</h3></div>
+        <div class="card-body" id="moodArchive"><div style="text-align:center;color:var(--text3);padding:20px">Chưa có nhật ký lưu trữ</div></div></div>
+    </div>
+    <script>
+    const token=localStorage.getItem('token');if(!token)location.href='/login';let selectedMood=null;
+    async function load(){try{const r=await fetch('/api/auth/me',{headers:{'Authorization':'Bearer '+token}});const u=await r.json();document.getElementById('userName').textContent=u.full_name;document.getElementById('userAvatar').textContent=u.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}catch(e){}loadHistory();loadArchive()}
+    async function loadArchive(){try{const r=await fetch('/api/mood/archive',{headers:{'Authorization':'Bearer '+token}});const d=await r.json();const logs=d.logs||[];const el=document.getElementById('moodArchive');if(!logs.length){el.innerHTML='<div style="text-align:center;color:var(--text3);padding:20px">Chưa có nhật ký lưu trữ</div>';return}el.innerHTML=logs.slice(0,10).map(m=>'<div style="display:flex;gap:10px;padding:10px;border-bottom:1px solid var(--border)"><span style="font-size:20px">'+(m.mood_emoji||'')+'</span><div style="flex:1"><div style="font-size:13px;font-weight:600">'+(m.mood_label||m.mood)+' <span class="badge badge-blue">'+(m.period||'')+'</span></div><div style="font-size:11px;color:var(--text3)">'+(m.note||'').slice(0,60)+' • '+new Date(m.created_at).toLocaleString('vi')+'</div></div><span style="font-size:12px;color:var(--text3)">'+m.safety_score+'/100</span></div>').join('')}catch(e){}}
+    function selectMood(el,mood,label){document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));el.classList.add('selected');selectedMood={mood,label};document.getElementById('saveBtn').disabled=false}
+    async function saveMood(){if(!selectedMood)return;const note=document.getElementById('moodNote').value;const btn=document.getElementById('saveBtn');btn.textContent='⏳ Đang phân tích...';btn.disabled=true;try{const r=await fetch('/api/mood',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({mood:selectedMood.mood,note,period:document.getElementById('moodPeriod').value})});const d=await r.json();if(d.error){alert(d.error);btn.textContent='💾 Lưu Nhật ký';btn.disabled=false;return}document.getElementById('moodResult').style.display='block';document.getElementById('resultMood').textContent=selectedMood.label;document.getElementById('resultScore').textContent=d.safety_score||85;const s=d.safety_score||85;const box=document.getElementById('safetyBox');box.style.background=s>=70?'var(--primary-bg)':s>=40?'var(--orange-bg)':'var(--red-bg)';document.getElementById('resultSafety').textContent=s>=70?'An toàn':s>=40?'Cảnh báo':'Nguy hiểm';document.getElementById('resultSafety').style.color=s>=70?'var(--primary)':s>=40?'var(--orange)':'var(--red)';document.getElementById('resultAdvice').innerHTML=d.advice||'Hãy tiếp tục chia sẻ để AI hiểu bạn hơn!';btn.textContent='💾 Lưu Nhật ký';loadHistory();loadArchive()}catch(e){btn.textContent='❌ Lỗi, thử lại';btn.disabled=false}}
+    async function loadHistory(){try{const r=await fetch('/api/mood/history',{headers:{'Authorization':'Bearer '+token}});const d=await r.json();const logs=d.logs||[];const el=document.getElementById('moodHistory');if(!logs.length){el.innerHTML='<div style="text-align:center;color:var(--text3);padding:20px">Chưa có nhật ký</div>';return}el.innerHTML=logs.map(m=>'<div style="display:flex;gap:12px;padding:12px;border-bottom:1px solid var(--border)"><span style="font-size:24px">'+(m.mood_emoji||'')+'</span><div style="flex:1"><div style="font-size:13px;font-weight:600">'+(m.mood_label||m.mood)+' <span style="font-weight:400;color:var(--text3);font-size:11px">'+new Date(m.created_at).toLocaleDateString('vi')+'</span></div><div style="font-size:12px;color:var(--text2);margin-top:4px">'+(m.note||'')+'</div><div style="margin-top:6px"><span class="badge '+(m.safety_score>=70?'badge-green':m.safety_score>=40?'badge-orange':'badge-red')+'">'+(m.safety_score>=70?'✅ An toàn':m.safety_score>=40?'⚠️ Cảnh báo':'🚨 Nguy hiểm')+' '+m.safety_score+'/100</span> <span class="badge badge-blue">'+(m.period?m.period.charAt(0).toUpperCase()+m.period.slice(1):'')+'</span></div><input type="checkbox" class="mood-cb" value="'+m.id+'" style="margin:0 6px"><button onclick="delMood('+m.id+')" style="border:none;background:none;color:#e53e3e;cursor:pointer;font-size:16px;padding:4px 8px" title="Xóa">🗑️</button></div></div>').join('')}catch(e){}}
+    function toggleAllMood(v){document.querySelectorAll('.mood-cb').forEach(c=>c.checked=v)}
+    async function deleteSelected(){const ids=[...document.querySelectorAll('.mood-cb:checked')].map(c=>c.value);if(!ids.length){alert('Chưa chọn nhật ký nào');return}if(!confirm('Xóa '+ids.length+' nhật ký đã chọn?'))return;for(const id of ids){await fetch('/api/mood/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+token}})}loadHistory()}
+    async function delMood(id){if(!confirm('Xóa nhật ký này?'))return;await fetch('/api/mood/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});loadHistory()}
+    load();
+    </script>
+</body>
+</html>

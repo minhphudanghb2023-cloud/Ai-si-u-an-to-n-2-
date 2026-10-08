@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>EduSafe AI - Xử Lý Phản Ánh</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><div class="nav-logo">👩‍🏫</div><div><h1>EduSafe AI</h1><span>Giáo viên</span></div></div>
+        <div class="nav-center">
+            <a href="/teacher" class="nav-role-btn">📊 Dashboard</a>
+            <a href="/teacher/students" class="nav-role-btn">👥 Học sinh</a>
+            <a href="/teacher/reports" class="nav-role-btn active">📋 Phản ánh</a>
+            <a href="/teacher/alerts" class="nav-role-btn">🚨 Cảnh báo AI</a>
+        </div>
+        <div class="nav-right"><div class="nav-user"><div class="nav-avatar" id="userAvatar">GV</div><div class="nav-user-info"><div class="nav-user-name" id="userName">Giáo viên</div></div></div></div>
+    </nav>
+    <div class="page">
+        <div class="page-header"><h2>📋 Hòm Thư Xử Lý Phản Ánh Ẩn Danh</h2><p>Xem chi tiết, lập biên bản và xử lý từng vụ việc</p></div>
+        <div class="tabs">
+            <button class="tab active" onclick="filterTab(this,'pending')">⏳ Chờ xử lý</button>
+            <button class="tab" onclick="filterTab(this,'in_progress')">🔄 Đang can thiệp</button>
+            <button class="tab" onclick="filterTab(this,'resolved')">✅ Đã hòa giải</button>
+            <button class="tab" onclick="filterTab(this,'archived')">📦 Đã lưu trữ</button>
+            <button class="tab" onclick="filterTab(this,'all')">📋 Tất cả</button>
+        </div>
+        <div style="display:flex;gap:8px;margin:12px 0;align-items:center">
+            <label style="font-size:12px;cursor:pointer"><input type="checkbox" id="checkAllReports" onchange="toggleAllReports(this.checked)"> Chọn tất cả</label>
+            <button onclick="archiveSelected()" style="margin-left:auto;background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer">📦 Lưu trữ đã chọn</button>
+            <button onclick="deleteSelectedReports()" style="background:#e53e3e;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer">🗑️ Xóa đã chọn</button>
+        </div>
+        <div id="reportList"></div>
+    </div>
+    <script>
+    const token=localStorage.getItem('token');if(!token)location.href='/login';
+    const API={headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}};
+    let allReports=[];let currentFilter='pending';
+    async function load(){try{const r=await fetch('/api/auth/me',API);const u=await r.json();document.getElementById('userName').textContent=u.full_name;document.getElementById('userAvatar').textContent=u.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}catch(e){location.href='/login'}}
+    async function loadReports(){try{const r=await fetch('/api/reports',API);const d=await r.json();allReports=d.reports||[];render()}catch(e){}}
+    function filterTab(el,filter){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');currentFilter=filter;render()}
+    function render(){const filtered=currentFilter==='all'?allReports:allReports.filter(r=>r.status===currentFilter);const el=document.getElementById('reportList');if(!filtered.length){el.innerHTML='<div class="card"><div class="card-body" style="text-align:center;color:var(--text3);padding:40px">Không có phản ánh nào</div></div>';return}el.innerHTML=filtered.map(rpt=>'<div class="card" style="margin-bottom:12px"><div class="card-body"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="badge '+(rpt.severity==='critical'?'badge-red':rpt.severity==='high'?'badge-orange':'badge-blue')+'">'+(rpt.severity==='critical'?'🚨 Khẩn cấp':rpt.severity==='high'?'⚠️ Cao':'📋 Trung bình')+'</span><span class="badge '+(rpt.status==='resolved'?'badge-green':rpt.status==='in_progress'?'badge-orange':'badge-gray')+'">'+(rpt.status==='resolved'?'Đã hòa giải':rpt.status==='in_progress'?'Đang can thiệp':rpt.status==='archived'?'📦 Đã lưu trữ':'Chờ xử lý')+'</span><input type="checkbox" class="report-cb" value="'+rpt.id+'" style="margin-right:8px"><span style="font-size:11px;color:var(--text3)">'+new Date(rpt.created_at).toLocaleString('vi')+'</span></div><div style="font-size:14px;font-weight:600;margin-bottom:4px">Loại: '+(rpt.report_type||'Không rõ')+' | Địa điểm: '+(rpt.location||'Không rõ')+'</div><div style="font-size:13px;color:var(--text2);margin-bottom:8px">'+(rpt.description||'')+'</div>'+(rpt.witnesses?'<div style="font-size:12px;color:var(--text3)">👥 Nhân chứng: '+rpt.witnesses+'</div>':'')+(rpt.notes?'<div style="margin-top:8px;padding:8px;background:var(--surface-alt);border-radius:6px;font-size:12px"><strong>📝 Biên bản:</strong> '+rpt.notes+'</div>':'')+'<div style="margin-top:10px;display:flex;gap:6px">'+(rpt.status!=='in_progress'?'<button class="btn btn-sm btn-outline" onclick="updateStatus('+rpt.id+',\'in_progress\')">🔄 Bắt đầu xử lý</button>':'')+(rpt.status!=='resolved'?'<button class="btn btn-sm btn-primary" onclick="updateStatus('+rpt.id+',\'resolved\')">✅ Hoàn tất</button>':'')+(rpt.status!=='archived'?'<button class="btn btn-sm btn-outline" onclick="updateStatus('+rpt.id+',\'archived\')">📦 Lưu trữ</button>':'')+'<button class="btn btn-sm btn-outline" onclick="showContact('+rpt.id+')">🔒 Liên hệ</button>'+'<button class="btn btn-sm btn-outline" style="color:#e53e3e" onclick="deleteReport('+rpt.id+')">🗑️ Xóa</button>'+'</div></div></div>').join('')}
+    async function updateStatus(id,status){await fetch('/api/reports/'+id,{method:'PUT',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({status})});loadReports()}
+    async function deleteReport(id){if(!confirm('Xóa phản ánh này?'))return;await fetch('/api/reports/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});loadReports()}
+    function toggleAllReports(v){document.querySelectorAll('.report-cb').forEach(c=>c.checked=v)}
+    async function deleteSelectedReports(){const ids=[...document.querySelectorAll('.report-cb:checked')].map(c=>c.value);if(!ids.length){alert('Chưa chọn phản ánh nào');return}if(!confirm('Xóa '+ids.length+' phản ánh đã chọn?'))return;for(const id of ids){await fetch('/api/reports/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+token}})}loadReports()}
+    async function archiveSelected(){const ids=[...document.querySelectorAll('.report-cb:checked')].map(c=>c.value);if(!ids.length){alert('Chưa chọn phản ánh nào');return}for(const id of ids){await fetch('/api/reports/'+id,{method:'PUT',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({status:'archived'})})}loadReports()}
+    async function showContact(id){var pw=prompt('Nhập mật khẩu của giáo viên để xem thông tin liên hệ:');if(!pw)return;try{const r=await fetch('/api/reports/'+id+'/contact',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({password:pw})});const u=await r.json();if(!r.ok){alert(u.error||'Mật khẩu không đúng');return}alert('Thông tin liên hệ (chỉ giáo viên mới xem được):\n\nTên: '+(u.full_name||'')+'\nLớp: '+(u.class_name||'')+' | Mã: '+(u.student_code||'')+'\nEmail: '+(u.email||'')+'\nSĐT: '+(u.phone||''))}catch(e){alert('Lỗi')}}
+    load();loadReports();
+    </script>
+</body>
+</html>

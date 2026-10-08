@@ -1,0 +1,77 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>EduSafe AI - Cẩm nang Phòng vệ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><div class="nav-logo">🛡️</div><div><h1>EduSafe AI</h1><span>Học Sinh</span></div></div>
+        <div class="nav-center">
+            <a href="/student" class="nav-role-btn">Trang chủ</a>
+            <a href="/student/chat" class="nav-role-btn">Chat AI</a>
+            <a href="/student/mood" class="nav-role-btn">Nhật ký</a>
+            <a href="/student/report" class="nav-role-btn">Báo cáo</a>
+            <a href="/student/simulate" class="nav-role-btn">Mô phỏng</a>
+            <a href="/student/quiz" class="nav-role-btn">Trắc nghiệm</a>
+            <a href="/student/guide" class="nav-role-btn active">Cẩm nang</a>
+        </div>
+        <div class="nav-right"><div class="nav-user"><div class="nav-avatar" id="userAvatar">HS</div><div class="nav-user-info"><div class="nav-user-name" id="userName">Học sinh</div></div></div></div>
+    </nav>
+    <div class="page">
+        <div class="page-header"><h2>📖 Cẩm Nang Phòng Vệ</h2><p>Tổng hợp kiến thức pháp luật và kỹ năng sống giúp bạn tự bảo vệ mình</p></div>
+        <div class="card" style="margin-bottom:16px">
+            <div class="card-header"><h3>⚖️ Quyền Của Học Sinh Được Bảo Vệ</h3></div>
+            <div class="card-body">
+                <div style="display:flex;flex-direction:column;gap:12px">
+                    <div class="alert-item info" style="margin:0"><div class="alert-icon">📜</div><div class="alert-content"><div class="alert-title">Quyền được bảo vệ an toàn</div><div class="alert-msg">Theo Luật Giáo dục 2019, học sinh có quyền được bảo vệ tính mạng, sức khỏe, nhân phẩm, danh dự. Bất kỳ hành vi xâm phạm nào đều bị xử lý theo pháp luật.</div></div></div>
+                    <div class="alert-item info" style="margin:0"><div class="alert-icon">🗣️</div><div class="alert-content"><div class="alert-title">Quyền được bày tỏ ý kiến</div><div class="alert-msg">Học sinh có quyền bày tỏ ý kiến, nguyện vọng với nhà trường, giáo viên về việc dạy học, quản lý giáo dục. Bạn có quyền lên tiếng khi bị đối xử bất công.</div></div></div>
+                    <div class="alert-item info" style="margin:0"><div class="alert-icon">🔒</div><div class="alert-content"><div class="alert-title">Quyền bảo mật thông tin</div><div class="alert-msg">Khi báo cáo sự việc, thông tin cá nhân của bạn được bảo mật tuyệt đối. Người báo cáo ẩn danh không bị tiết lộ danh tính.</div></div></div>
+                    <div class="alert-item info" style="margin:0"><div class="alert-icon">💚</div><div class="alert-content"><div class="alert-title">Quyền được hỗ trợ tâm lý</div><div class="alert-msg">Học sinh có quyền được tư vấn tâm lý miễn phí. Trường học phải có biện pháp hỗ trợ học sinh gặp khó khăn về tâm lý, xã hội.</div></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+            <div class="card-header"><h3>⚠️ Nhận Biết Các Hình Thức Bạo Lực Học Đường</h3></div>
+            <div class="card-body">
+                <div class="bento-grid bento-2x2">
+                    <div class="alert-item warning" style="margin:0;border-radius:12px"><div class="alert-icon">💪</div><div class="alert-content"><div class="alert-title">Bạo lực thể chất</div><div class="alert-msg">Đánh, đá, xô đẩy, gây thương tích, phá hủy đồ đạc cá nhân.</div></div></div>
+                    <div class="alert-item warning" style="margin:0;border-radius:12px"><div class="alert-icon">😠</div><div class="alert-content"><div class="alert-title">Bạo lực ngôn ngữ</div><div class="alert-msg">Chửi bới, xúc phạm, đặt biệt danh xấu, đe dọa, nói xấu sau lưng.</div></div></div>
+                    <div class="alert-item warning" style="margin:0;border-radius:12px"><div class="alert-icon">📱</div><div class="alert-content"><div class="alert-title">Bạo lực mạng</div><div class="alert-msg">Gửi tin nhắn đe dọa, đăng ảnh/video xấu, lan truyền tin đồn trên mạng.</div></div></div>
+                    <div class="alert-item warning" style="margin:0;border-radius:12px"><div class="alert-icon">🚫</div><div class="alert-content"><div class="alert-title">Tẩy chay, cô lập</div><div class="alert-msg">Không cho chơi cùng, loại khỏi nhóm, gây áp lực để mọi người tránh xa nạn nhân.</div></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+            <div class="card-header"><h3>🆘 Khi Cần Giúp Đỡ - Liên Hệ Khẩn Cấp</h3></div>
+            <div class="card-body">
+                <div class="bento-grid bento-2x2">
+                    <div class="alert-item critical" style="margin:0;border-radius:12px"><div class="alert-icon">📞</div><div class="alert-content"><div class="alert-title">Tổng đài bảo vệ trẻ em: 111</div><div class="alert-msg">Miễn phí 24/7 - Hỗ trợ mọi vấn đề về trẻ em</div></div></div>
+                    <div class="alert-item critical" style="margin:0;border-radius:12px"><div class="alert-icon">🏥</div><div class="alert-content"><div class="alert-title">Cấp cứu: 115</div><div class="alert-msg">Khi cần hỗ trợ y tế khẩn cấp</div></div></div>
+                    <div class="alert-item info" style="margin:0;border-radius:12px"><div class="alert-icon">👩‍🏫</div><div class="alert-content"><div class="alert-title">Giáo viên chủ nhiệm</div><div class="alert-msg">Người đầu tiên bạn nên liên hệ khi gặp vấn đề ở trường</div></div></div>
+                    <div class="alert-item info" style="margin:0;border-radius:12px"><div class="alert-icon">👨‍👩‍👧</div><div class="alert-content"><div class="alert-title">Phụ huynh, người thân</div><div class="alert-msg">Gia đình luôn ở bên bạn. Đừng ngại chia sẻ!</div></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h3>🛡️ Kỹ Năng Tự Bảo Vệ</h3></div>
+            <div class="card-body">
+                <div style="display:flex;flex-direction:column;gap:12px">
+                    <div style="padding:12px;background:var(--primary-bg);border-radius:8px;border-left:4px solid var(--primary)"><strong>Bước 1:</strong> Giữ bình tĩnh, không phản ứng giận dữ hoặc đánh lại.</div>
+                    <div style="padding:12px;background:var(--blue-bg);border-radius:8px;border-left:4px solid var(--blue)"><strong>Bước 2:</strong> Tạo khoảng cách an toàn, chạy đến nơi đông người.</div>
+                    <div style="padding:12px;background:var(--purple-bg);border-radius:8px;border-left:4px solid var(--purple)"><strong>Bước 3:</strong> Báo ngay cho giáo viên, phụ huynh hoặc gọi 111.</div>
+                    <div style="padding:12px;background:var(--orange-bg);border-radius:8px;border-left:4px solid var(--orange)"><strong>Bước 4:</strong> Lưu bằng chứng (tin nhắn, ảnh) nếu có thể an toàn.</div>
+                    <div style="padding:12px;background:var(--red-bg);border-radius:8px;border-left:4px solid var(--red)"><strong>Bước 5:</strong> Đừng giữ bí mật! Việc chia sẻ giúp bạn được bảo vệ tốt hơn.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    const token=localStorage.getItem('token');if(!token)location.href='/login';
+    async function load(){try{const r=await fetch('/api/auth/me',{headers:{'Authorization':'Bearer '+token}});const u=await r.json();document.getElementById('userName').textContent=u.full_name;document.getElementById('userAvatar').textContent=u.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}catch(e){}}
+    load();
+    </script>
+</body>
+</html>

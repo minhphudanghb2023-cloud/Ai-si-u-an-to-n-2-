@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>EduSafe AI - Quản Lý Học Sinh</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><div class="nav-logo">👩‍🏫</div><div><h1>EduSafe AI</h1><span>Giáo viên</span></div></div>
+        <div class="nav-center">
+            <a href="/teacher" class="nav-role-btn">📊 Dashboard</a>
+            <a href="/teacher/students" class="nav-role-btn active">👥 Học sinh</a>
+            <a href="/teacher/reports" class="nav-role-btn">📋 Phản ánh</a>
+            <a href="/teacher/alerts" class="nav-role-btn">🚨 Cảnh báo AI</a>
+        </div>
+        <div class="nav-right"><div class="nav-user"><div class="nav-avatar" id="userAvatar">GV</div><div class="nav-user-info"><div class="nav-user-name" id="userName">Giáo viên</div></div></div></div>
+    </nav>
+    <div class="page">
+        <div class="page-header"><h2>👥 Quản Lý Học Sinh</h2><p>Xem danh sách, tâm lý và ghi chú từng học sinh</p></div>
+        <div class="card">
+            <div class="card-header"><h3>Danh sách Học sinh</h3><span class="badge badge-blue" id="studentCount">0 học sinh</span></div>
+            <div class="card-body">
+                <table class="table">
+                    <thead><tr><th>Mã HS</th><th>Họ tên</th><th>Lớp</th><th>Tâm lý</th><th>Thao tác</th></tr></thead>
+                    <tbody id="studentTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script>
+    const token=localStorage.getItem('token');if(!token)location.href='/login';
+    const API={headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}};
+    async function load(){try{const r=await fetch('/api/auth/me',API);const u=await r.json();document.getElementById('userName').textContent=u.full_name;document.getElementById('userAvatar').textContent=u.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}catch(e){location.href='/login'}}
+    async function loadStudents(){try{const r=await fetch('/api/students',API);const d=await r.json();const students=Array.isArray(d)?d:[];document.getElementById('studentCount').textContent=students.length+' học sinh';const tbody=document.getElementById('studentTable');if(!students.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--text3)">Không có học sinh</td></tr>';return}tbody.innerHTML=students.map(s=>{const sc=s.safety_score;const badge= sc==null?'<span class="badge badge-gray">Chưa có</span>': sc>=70?'<span class="badge badge-green">An toàn</span>': sc>=40?'<span class="badge badge-orange">Cảnh báo</span>':'<span class="badge badge-red">Nguy hiểm</span>';return '<tr><td><span style="font-weight:600">'+(s.student_code||s.username)+'</span></td><td>'+s.full_name+'</td><td><span class="badge badge-gray">'+(s.class_name||'N/A')+'</span></td><td>'+badge+' '+(sc!=null?sc+'/100':'')+'</td><td><button class="btn btn-sm btn-outline" onclick="viewProfile('+s.id+')">👁 Hồ sơ</button> <button class="btn btn-sm btn-outline" onclick="alert(\'Ghi chú cho '+s.full_name+'\')">📝 Ghi chú</button></td></tr>'}).join('')}catch(e){}}
+    setInterval(loadStudents,10000);
+    load();loadStudents();
+    async function viewProfile(id){try{const r=await fetch('/api/students/'+id+'/profile',API);const p=await r.json();if(!p.user){alert('Lỗi tải hồ sơ');return}const u=p.user;const quiz=p.quiz||{};const moods=(p.recent_moods||[]).map(m=>'• '+(m.mood_emoji||'')+' '+(m.mood_label||m.mood)+' ('+m.safety_score+'/100) '+(m.note?'— '+m.note.slice(0,60):'')+' '+new Date(m.created_at).toLocaleString('vi')).join('<br>');document.getElementById('profileHtml').innerHTML='<p><strong>Họ tên:</strong> '+u.full_name+'</p><p><strong>Lớp:</strong> '+(u.class_name||'N/A')+' | <strong>Mã:</strong> '+(u.student_code||u.username)+'</p><p><strong>Email:</strong> '+(u.email||'N/A')+' | <strong>SĐT:</strong> '+(u.phone||'N/A')+'</p><p><strong>Quiz gần nhất:</strong> '+(quiz.score!=null?quiz.score+'/'+(quiz.total!=null?quiz.total:'?'):'Chưa có')+'</p><p><strong>Nhật ký gần đây:</strong><br>'+(moods||'Chưa có nhật ký')+'</p>';document.getElementById('profileModal').style.display='flex'}catch(e){alert('Lỗi')}}
+    </script>
+    <div id="profileModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);align-items:center;justify-content:center;z-index:9999">
+        <div style="background:#fff;border-radius:12px;padding:20px;max-width:560px;width:90%;max-height:80vh;overflow-y:auto">
+            <h3 style="margin-top:0">👁 Hồ sơ học sinh</h3>
+            <div id="profileHtml"></div>
+            <button class="btn btn-primary" onclick="document.getElementById('profileModal').style.display='none'">Đóng</button>
+        </div>
+    </div>
+</body>
+</html>
