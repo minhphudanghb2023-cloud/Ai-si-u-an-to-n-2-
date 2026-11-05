@@ -1,7 +1,14 @@
 import sqlite3
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+# Múi giờ Hà Nội (UTC+7)
+HANOI_TZ = timezone(timedelta(hours=7))
+
+def now_hanoi():
+    """Lấy thời gian hiện tại theo giờ Hà Nội"""
+    return datetime.now(HANOI_TZ)
 
 import json
 from datetime import datetime
@@ -13,7 +20,7 @@ def archive_yesterday_moods():
     """Chuyen nhat ky cu (truoc hom nay) vao bang luu tru va xoa khoi bang chinh."""
     conn = get_db()
     c = conn.cursor()
-    today = datetime.now().date().isoformat()
+    today = now_hanoi().date().isoformat()
     c.execute("INSERT INTO mood_logs_archive (id, user_id, mood, mood_emoji, mood_label, note, safety_score, risk_level, period, created_at)"
               " SELECT id, user_id, mood, mood_emoji, mood_label, note, safety_score, risk_level, period, created_at FROM mood_logs WHERE substr(created_at,1,10) < ?", (today,))
     c.execute("DELETE FROM mood_logs WHERE substr(created_at,1,10) < ?", (today,))
@@ -129,6 +136,25 @@ def init_db():
     except Exception:
         pass
 
+    # Thung rac - luu tam nhat ky da xoa
+    try:
+        c.execute("""CREATE TABLE IF NOT EXISTS mood_logs_trash (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            original_id INTEGER,
+            user_id INTEGER,
+            mood TEXT DEFAULT 'binhthuong',
+            mood_emoji TEXT DEFAULT '',
+            mood_label TEXT DEFAULT '',
+            note TEXT DEFAULT '',
+            safety_score INTEGER DEFAULT 85,
+            risk_level TEXT DEFAULT 'low',
+            period TEXT DEFAULT '',
+            created_at TIMESTAMP,
+            deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )""")
+    except Exception:
+        pass
+
     c.execute("""CREATE TABLE IF NOT EXISTS reports (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -207,7 +233,8 @@ def _seed_data(c):
             ("ph001", "ph001@edusafe.vn", hash_password("123456"), "Nguyễn Văn Phụ", "parent", "0911111111", "", None, "PH001"),
             ("ph002", "ph002@edusafe.vn", hash_password("123456"), "Lê Thị Hồng", "parent", "0922222222", "", None, "PH002"),
         ]
-        c.executemany("INSERT INTO users (username, email, password_hash, full_name, role, phone, class_name, parent_id, student_code) VALUES (?,?,?,?,?,?,?,?,?)", users)
+        c.executemany("INSERT INTO users (username, email, password_hash, full_name, role, phone, class_name, parent_id, student_code, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                      [(u[0], u[1], u[2], u[3], u[4], u[5], u[6], u[7], u[8], now_hanoi().strftime("%Y-%m-%d %H:%M:%S")) for u in users])
 
         c.execute("UPDATE users SET parent_id = (SELECT id FROM users WHERE username='ph001') WHERE username='hs001'")
         c.execute("UPDATE users SET parent_id = (SELECT id FROM users WHERE username='ph002') WHERE username='hs003'")
@@ -222,7 +249,7 @@ def _seed_data(c):
             (5, "binhthuong", "😐", "Bình thường", "Hoc bai bình thường", 80, "low"),
         ]
         for uid, mood, emoji, label, note, score, risk in moods:
-            c.execute("INSERT INTO mood_logs (user_id, mood, mood_emoji, mood_label, note, safety_score, risk_level) VALUES (?,?,?,?,?,?,?)", (uid, mood, emoji, label, note, score, risk))
+            c.execute("INSERT INTO mood_logs (user_id, mood, mood_emoji, mood_label, note, safety_score, risk_level, created_at) VALUES (?,?,?,?,?,?,?,?)", (uid, mood, emoji, label, note, score, risk, now_hanoi().strftime("%Y-%m-%d %H:%M:%S")))
 
         reports = [
             (4, "Nguyễn Minh Anh", "8A", "physical", "Bị bạn đánh ở sân trường vừa rồi", "Sân trường", "Lê Văn Bình", "high", "pending"),
@@ -230,7 +257,7 @@ def _seed_data(c):
             (5, "Lê Văn Bình", "8A", "cyber", "Bị đăng ảnh chế lên nhóm lớp", "Online", "Nhiều bạn", "high", "pending"),
         ]
         for uid, name, cls, rtype, desc, loc, wit, sev, status in reports:
-            c.execute("INSERT INTO reports (user_id, student_name, class_name, report_type, description, location, witnesses, severity, status) VALUES (?,?,?,?,?,?,?,?,?)", (uid, name, cls, rtype, desc, loc, wit, sev, status))
+            c.execute("INSERT INTO reports (user_id, student_name, class_name, report_type, description, location, witnesses, severity, status, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)", (uid, name, cls, rtype, desc, loc, wit, sev, status, now_hanoi().strftime("%Y-%m-%d %H:%M:%S")))
 
         alerts = [
             (4, "Cảnh báo tâm lý", "Hoc sinh Nguyễn Minh Anh có dấu hiệu bất ổn", "critical", "teacher"),
@@ -238,7 +265,7 @@ def _seed_data(c):
             (4, "Cảnh báo nguy cơ", "Hoc sinh có tiêu chí nguy cơ cao", "critical", "admin"),
         ]
         for uid, title, msg, sev, target in alerts:
-            c.execute("INSERT INTO alerts (user_id, title, message, severity, target_role) VALUES (?,?,?,?,?)", (uid, title, msg, sev, target))
+            c.execute("INSERT INTO alerts (user_id, title, message, severity, target_role, created_at) VALUES (?,?,?,?,?,?)", (uid, title, msg, sev, target, now_hanoi().strftime("%Y-%m-%d %H:%M:%S")))
 
         c.execute("INSERT OR REPLACE INTO config (key, value) VALUES ('ai_sensitivity', 'high')")
 
@@ -248,7 +275,7 @@ def create_user(username, email, password_hash, full_name, role, phone="", class
     conn = get_db()
     c = conn.cursor()
     c.execute("INSERT INTO users (username, email, password_hash, full_name, role, phone, class_name, parent_id, student_code, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
-              (username, email, password_hash, full_name, role, phone, class_name, parent_id, student_code, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+              (username, email, password_hash, full_name, role, phone, class_name, parent_id, student_code, now_hanoi().strftime("%Y-%m-%d %H:%M:%S")))
     user_id = c.lastrowid
     conn.commit()
     conn.close()
@@ -336,7 +363,7 @@ def create_session(session_id, user_id=None, model_used=""):
     conn = get_db()
     c = conn.cursor()
     c.execute("INSERT INTO sessions (session_id, user_id, model_used, created_at) VALUES (?,?,?,?)",
-              (session_id, user_id, model_used, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+              (session_id, user_id, model_used, now_hanoi().strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
     conn.close()
 
@@ -359,7 +386,7 @@ def delete_chat_session(session_id, user_id=None):
 def save_message(session_id, role, content):
     conn = get_db()
     c = conn.cursor()
-    c.execute("INSERT INTO messages (session_id, role, content, created_at) VALUES (?,?,?,?)", (session_id, role, content, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    c.execute("INSERT INTO messages (session_id, role, content, created_at) VALUES (?,?,?,?)", (session_id, role, content, now_hanoi().strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
     conn.close()
 
@@ -394,7 +421,7 @@ def save_mood_log(user_id, mood, mood_emoji, mood_label, note, safety_score, ris
     conn = get_db()
     c = conn.cursor()
     c.execute("INSERT INTO mood_logs (user_id, mood, mood_emoji, mood_label, note, safety_score, risk_level, period, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
-              (user_id, mood, mood_emoji, mood_label, note, safety_score, risk_level, period, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+              (user_id, mood, mood_emoji, mood_label, note, safety_score, risk_level, period, now_hanoi().strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
     conn.close()
 
@@ -414,9 +441,133 @@ def get_mood_archive(user_id=None, limit=50):
 def delete_mood_log(log_id, user_id):
     conn = get_db()
     c = conn.cursor()
-    c.execute("DELETE FROM mood_logs WHERE id=? AND user_id=?", (log_id, user_id))
+    # Chuyen vao thung rac thay vi xoa vinh vien
+    c.execute("SELECT * FROM mood_logs WHERE id=? AND user_id=?", (log_id, user_id))
+    row = c.fetchone()
+    if row:
+        c.execute("INSERT INTO mood_logs_trash (original_id, user_id, mood, mood_emoji, mood_label, note, safety_score, risk_level, period, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                  (log_id, user_id, row["mood"], row["mood_emoji"], row["mood_label"], row["note"], row["safety_score"], row["risk_level"], row["period"], row["created_at"]))
+        c.execute("DELETE FROM mood_logs WHERE id=? AND user_id=?", (log_id, user_id))
     conn.commit()
     deleted = c.rowcount
+    conn.close()
+    return deleted
+
+
+def delete_mood_archive_log(log_id, user_id):
+    """Xoa 1 nhat ky trong luu tru - dua vao thung rac"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM mood_logs_archive WHERE id=? AND user_id=?", (log_id, user_id))
+    row = c.fetchone()
+    if row:
+        c.execute("INSERT INTO mood_logs_trash (original_id, user_id, mood, mood_emoji, mood_label, note, safety_score, risk_level, period, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                  (log_id, user_id, row["mood"], row["mood_emoji"], row["mood_label"], row["note"], row["safety_score"], row["risk_level"], row["period"], row["created_at"]))
+        c.execute("DELETE FROM mood_logs_archive WHERE id=? AND user_id=?", (log_id, user_id))
+    conn.commit()
+    deleted = c.rowcount
+    conn.close()
+    return deleted
+
+
+def get_mood_trash(user_id):
+    """Lay danh sach thung rac"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM mood_logs_trash WHERE user_id=? ORDER BY deleted_at DESC", (user_id,))
+    rows = c.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def restore_mood_trash(trash_id, user_id):
+    """Khoi phuc nhat ky tu thung rac"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM mood_logs_trash WHERE id=? AND user_id=?", (trash_id, user_id))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return 0
+    # Them lai vao bang goc (khoi tao id moi)
+    c.execute("INSERT INTO mood_logs (user_id, mood, mood_emoji, mood_label, note, safety_score, risk_level, period, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
+              (row["user_id"], row["mood"], row["mood_emoji"], row["mood_label"], row["note"], row["safety_score"], row["risk_level"], row["period"], row["created_at"]))
+    c.execute("DELETE FROM mood_logs_trash WHERE id=? AND user_id=?", (trash_id, user_id))
+    conn.commit()
+    conn.close()
+    return 1
+
+
+def delete_mood_trash_forever(trash_id, user_id):
+    """Xoa vinh vien khoi thung rac"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("DELETE FROM mood_logs_trash WHERE id=? AND user_id=?", (trash_id, user_id))
+    conn.commit()
+    deleted = c.rowcount
+    conn.close()
+    return deleted
+
+
+def empty_mood_trash(user_id):
+    """Xoa toan bo thung rac"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("DELETE FROM mood_logs_trash WHERE user_id=?", (user_id,))
+    conn.commit()
+    deleted = c.rowcount
+    conn.close()
+    return deleted
+
+
+def delete_old_mood_logs(user_id, days=30):
+    """Xóa nhật ký tâm trạng cũ hơn N ngày (cả mood_logs và archive)"""
+    from datetime import datetime, timedelta
+    cutoff = (now_hanoi() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("DELETE FROM mood_logs WHERE user_id=? AND created_at < ?", (user_id, cutoff))
+    deleted1 = c.rowcount
+    try:
+        c.execute("DELETE FROM mood_logs_archive WHERE user_id=? AND created_at < ?", (user_id, cutoff))
+        deleted1 += c.rowcount
+    except Exception:
+        pass
+    conn.commit()
+    conn.close()
+    return deleted1
+
+
+def delete_old_mood_logs(user_id, days=30):
+    """Xóa nhật ký tâm trạng cũ hơn N ngày (cả mood_logs và archive)"""
+    from datetime import datetime, timedelta
+    cutoff = (now_hanoi() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("DELETE FROM mood_logs WHERE user_id=? AND created_at < ?", (user_id, cutoff))
+    deleted1 = c.rowcount
+    try:
+        c.execute("DELETE FROM mood_logs_archive WHERE user_id=? AND created_at < ?", (user_id, cutoff))
+        deleted1 += c.rowcount
+    except Exception:
+        pass
+    conn.commit()
+    conn.close()
+    return deleted1
+
+
+def delete_all_mood_logs(user_id):
+    """Xóa TOÀN BỘ nhật ký tâm trạng của user"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("DELETE FROM mood_logs WHERE user_id=?", (user_id,))
+    deleted = c.rowcount
+    try:
+        c.execute("DELETE FROM mood_logs_archive WHERE user_id=?", (user_id,))
+        deleted += c.rowcount
+    except Exception:
+        pass
+    conn.commit()
     conn.close()
     return deleted
 
@@ -447,10 +598,10 @@ def create_report(user_id, student_name, class_name, report_type, description, l
     conn = get_db()
     c = conn.cursor()
     c.execute("INSERT INTO reports (user_id, student_name, class_name, report_type, description, location, witnesses, severity, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
-              (user_id, student_name, class_name, report_type, description, location, witnesses, severity, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+              (user_id, student_name, class_name, report_type, description, location, witnesses, severity, now_hanoi().strftime("%Y-%m-%d %H:%M:%S")))
     report_id = c.lastrowid
     c.execute("INSERT INTO alerts (user_id, title, message, severity, target_role, created_at) VALUES (?,?,?,?,?,?)",
-              (user_id, f"Báo cáo mới: {report_type}", f"Một học sinh gửi báo cáo ẩn danh", severity, "teacher", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+              (user_id, f"Báo cáo mới: {report_type}", f"Một học sinh gửi báo cáo ẩn danh", severity, "teacher", now_hanoi().strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
     conn.close()
     return report_id
@@ -478,7 +629,7 @@ def get_all_reports():
 def update_report(report_id, status=None, notes=None):
     conn = get_db()
     c = conn.cursor()
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now = now_hanoi().strftime("%Y-%m-%d %H:%M:%S")
     if status and notes:
         c.execute("UPDATE reports SET status=?, notes=?, updated_at=? WHERE id=?", (status, notes, now, report_id))
     elif status:
@@ -493,7 +644,7 @@ def update_report(report_id, status=None, notes=None):
 def create_alert(user_id, title, message, severity, target_role):
     conn = get_db()
     c = conn.cursor()
-    c.execute("INSERT INTO alerts (user_id, title, message, severity, target_role, created_at) VALUES (?,?,?,?,?,?)", (user_id, title, message, severity, target_role, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    c.execute("INSERT INTO alerts (user_id, title, message, severity, target_role, created_at) VALUES (?,?,?,?,?,?)", (user_id, title, message, severity, target_role, now_hanoi().strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
     conn.close()
 
@@ -556,7 +707,7 @@ def save_risk_assessment(session_id, user_id, risk_level, risk_score, factors, r
     conn = get_db()
     c = conn.cursor()
     c.execute("INSERT INTO risk_assessments (session_id, user_id, risk_level, risk_score, factors, recommendation, created_at) VALUES (?,?,?,?,?,?,?)",
-              (session_id, user_id, risk_level, risk_score, json.dumps(factors), recommendation, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+              (session_id, user_id, risk_level, risk_score, json.dumps(factors), recommendation, now_hanoi().strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
     conn.close()
 
@@ -574,7 +725,7 @@ def get_latest_risk_assessment(user_id):
 def save_quiz_score(user_id, score, total):
     conn = get_db()
     c = conn.cursor()
-    c.execute("INSERT OR REPLACE INTO quiz_scores (user_id, score, total, created_at) VALUES (?,?,?,?)", (user_id, score, total, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    c.execute("INSERT OR REPLACE INTO quiz_scores (user_id, score, total, created_at) VALUES (?,?,?,?)", (user_id, score, total, now_hanoi().strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
     conn.close()
 

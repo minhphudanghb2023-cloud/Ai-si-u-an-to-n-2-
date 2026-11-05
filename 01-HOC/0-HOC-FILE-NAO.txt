@@ -1,0 +1,39 @@
+====================================================
+   DANH SACH PHAN LOAI FILE - EDUSAFE AI
+====================================================
+
+====================================================
+ NGAN 1 - CAN HOC (hoc theo thu tu)
+====================================================
+ 1. backup.py                 - nho, de doc (buoc dam)
+ 2. database.py               - kho du lieu (quan trong)
+ 3. student_mood.html         - 1 file HTML mau
+ 4. app.py                    - to qua lon, doc sau
+ 5. auth.py                   - dang nhap JWT
+ 6. ai_brain.py               - AI Gemini (doc cuoi)
+
+ Luc hoc: mo file -> doc 1-2 ham nho -> bấm chuot phai
+ Open With... de mo, hoac bam dup mo bang PyCharm.
+ Khong doc het trong 1 lan.
+
+====================================================
+ NGAN 2 - LUOT MAT (khong can ngoi hoc)
+====================================================
+ - time.js, style.css
+ - requirements.txt
+ - chatbot-widget.html
+ - 14 file HTML con lai (na nac student_mood.html)
+
+====================================================
+ KHONG CO O DAY (khong duoc keo di cho khac)
+====================================================
+ - 7 file .bat (nut bam mo/tat web)
+ - thu muc __pycache__, .git, venv, backups
+ - server.log, server_err.log, edusafe.db
+ - .env, .gitignore
+ -> Tat ca nam o thu muc goc, de yen nhu vay,
+    keo di la web chay bao loi ngay.
+
+====================================================
+ TOM LAI: hoc 6 file, luot 18 cai, con lai de yen.
+====================================================

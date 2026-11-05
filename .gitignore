@@ -12,3 +12,5 @@ __pycache__/
 # Môi trường ảo
 venv/
 .venv/
+
+backups/

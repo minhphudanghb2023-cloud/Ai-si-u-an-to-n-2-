@@ -3,16 +3,24 @@ import json
 import uuid
 import re
 import requests
-from datetime import datetime
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for, g
+from datetime import datetime, timezone, timedelta
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, g, send_file
 from dotenv import load_dotenv
 import database as db
 import ai_brain
+import backup as backup_module
 from auth import (
     hash_password, verify_password, create_access_token, create_refresh_token,
     decode_token, require_auth, require_role, require_permission,
     ROLES, get_user_permissions
 )
+
+# Muc gio Ha Noi (UTC+7)
+HANOI_TZ = timezone(timedelta(hours=7))
+
+def now_hanoi():
+    """Lay thoi gian hien tai theo gio Ha Noi"""
+    return datetime.now(HANOI_TZ)
 
 load_dotenv()
 
@@ -20,6 +28,13 @@ try:
     db.archive_yesterday_moods()
 except Exception as e:
     print("archive error:", e)
+
+# Backup khi khoi dong + bat dau auto-backup
+try:
+    backup_module.backup_database(backup_type="startup")
+    backup_module.start_auto_backup()
+except Exception as e:
+    print("backup init error:", e)
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = os.getenv("SECRET_KEY", "edusafe-secret")
@@ -33,6 +48,21 @@ def no_cache(response):
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
+# Tu dong chuyen nhat ky hom qua vao luu tru (chi chay 1 lan moi ngay,
+# ke ca khi server chay xuyen dem khong restart)
+_last_archive_date = None
+
+@app.before_request
+def auto_archive_daily():
+    global _last_archive_date
+    try:
+        today = now_hanoi().date().isoformat()
+        if _last_archive_date != today:
+            _last_archive_date = today
+            db.archive_yesterday_moods()
+    except Exception as e:
+        print("auto archive error:", e)
 
 API_BASE = "https://opencode.ai/zen/v1"
 MODELS = {
@@ -301,7 +331,7 @@ def api_register():
     if db.get_user_by_email(email):
         return jsonify({"error": "Email đã tồn tại"}), 400
 
-    student_code = f"HS{datetime.now().strftime('%Y%m%d%H%M%S')}" if role == "student" else ""
+    student_code = f"HS{now_hanoi().strftime('%Y%m%d%H%M%S')}" if role == "student" else ""
     user_id = db.create_user(username, email, hash_password(password), full_name, role, "", class_name, None, student_code)
     return jsonify({"success": True, "user_id": user_id}), 201
 
@@ -495,7 +525,7 @@ def api_log_mood():
 
     period = (data.get("period") or "sáng").strip().lower()
     # Gioi han 1 lan dang moi buoi (sang/trua/chieu) trong ngay
-    today = datetime.now().date().isoformat()
+    today = now_hanoi().date().isoformat()
     for m in db.get_mood_logs(user_id=user_id):
         if str(m.get("created_at", ""))[:10] == today and str(m.get("period", "")).strip().lower() == period:
             return jsonify({"error": f"Bạn đã đăng nhật ký buổi {period} hôm rồi! Mỗi buổi chỉ đăng 1 lần. 🌟"}), 429
@@ -580,6 +610,84 @@ def api_delete_mood(log_id):
     return jsonify({"success": True})
 
 
+@app.route("/api/mood/archive/<int:log_id>", methods=["DELETE"])
+@require_auth
+def api_delete_mood_archive(log_id):
+    """Xóa 1 nhật ký trong lưu trữ"""
+    user_id = int(g.current_user["sub"])
+    deleted = db.delete_mood_archive_log(log_id, user_id)
+    if deleted == 0:
+        return jsonify({"error": "Không tìm thấy hoặc không có quyền xóa"}), 404
+    return jsonify({"success": True})
+
+
+@app.route("/api/mood/trash", methods=["GET"])
+@require_auth
+def api_mood_trash():
+    """Lấy danh sách thùng rác"""
+    user_id = int(g.current_user["sub"])
+    return jsonify({"logs": db.get_mood_trash(user_id)})
+
+
+@app.route("/api/mood/trash/<int:trash_id>/restore", methods=["POST"])
+@require_auth
+def api_mood_trash_restore(trash_id):
+    """Khôi phục từ thùng rác"""
+    user_id = int(g.current_user["sub"])
+    restored = db.restore_mood_trash(trash_id, user_id)
+    if restored == 0:
+        return jsonify({"error": "Không tìm thấy"}), 404
+    return jsonify({"success": True})
+
+
+@app.route("/api/mood/trash/<int:trash_id>/forever", methods=["DELETE"])
+@require_auth
+def api_mood_trash_forever(trash_id):
+    """Xóa vĩnh viễn khỏi thùng rác"""
+    user_id = int(g.current_user["sub"])
+    deleted = db.delete_mood_trash_forever(trash_id, user_id)
+    if deleted == 0:
+        return jsonify({"error": "Không tìm thấy"}), 404
+    return jsonify({"success": True})
+
+
+@app.route("/api/mood/trash/empty", methods=["DELETE"])
+@require_auth
+def api_mood_trash_empty():
+    """Đổ đầy thùng rác"""
+    user_id = int(g.current_user["sub"])
+    deleted = db.empty_mood_trash(user_id)
+    return jsonify({"success": True, "deleted": deleted})
+
+
+@app.route("/api/mood/delete-old", methods=["POST"])
+@require_auth
+def api_delete_old_moods():
+    """Xóa nhật ký cũ hơn N ngày"""
+    user_id = int(g.current_user["sub"])
+    data = request.json or {}
+    days = int(data.get("days", 30))
+    if days < 1:
+        return jsonify({"error": "Số ngày phải >= 1"}), 400
+    deleted = db.delete_old_mood_logs(user_id, days)
+    return jsonify({"success": True, "deleted": deleted, "days": days})
+
+
+@app.route("/api/mood/delete-all", methods=["POST"])
+@require_auth
+def api_delete_all_moods():
+    """Xóa toàn bộ nhật ký"""
+    user_id = int(g.current_user["sub"])
+    # Backup truoc khi xoa toan bo
+    try:
+        import backup as backup_module
+        backup_module.backup_database(backup_type="pre_delete_all")
+    except Exception:
+        pass
+    deleted = db.delete_all_mood_logs(user_id)
+    return jsonify({"success": True, "deleted": deleted})
+
+
 @app.route("/api/mood/all", methods=["GET"])
 @require_permission("mood:read")
 def api_mood_all():
@@ -624,7 +732,7 @@ def api_create_report():
     data = request.json
     user_id = int(g.current_user["sub"])
     # Gioi han 1 lan bao cao moi ngay
-    today = datetime.now().date().isoformat()
+    today = now_hanoi().date().isoformat()
     for r in db.get_all_reports():
         if r.get("user_id") == user_id and str(r.get("created_at", ""))[:10] == today:
             return jsonify({"error": "Bạn đã gửi báo cáo hôm nay rồi! Hãy quay lại vào ngày mai nhé. 🌟"}), 429
@@ -704,7 +812,7 @@ def api_teacher_dashboard():
 
     weekly_moods = [0] * 7
     total_week = 0
-    now = datetime.now()
+    now = now_hanoi()
     for m in moods:
         try:
             dt = datetime.fromisoformat(m["created_at"])
@@ -812,6 +920,114 @@ def api_admin_config():
     return jsonify({"success": True})
 
 
+# ==================== BACKUP & DATA PROTECTION ====================
+@app.route("/api/backup/create", methods=["POST"])
+@require_role("admin")
+def api_backup_create():
+    """Tạo backup thủ công"""
+    result = backup_module.backup_database(backup_type="manual")
+    return jsonify(result)
+
+
+@app.route("/api/backup/list", methods=["GET"])
+@require_role("admin")
+def api_backup_list():
+    """Xem danh sách backup"""
+    backups = backup_module.get_backup_list()
+    return jsonify({"backups": backups, "config": backup_module.BACKUP_CONFIG})
+
+
+@app.route("/api/backup/export", methods=["GET"])
+@require_auth
+def api_backup_export():
+    """Export toàn bộ dữ liệu ra file JSON để tải về"""
+    user = g.current_user
+    user_id = int(user["sub"]) if user.get("role") == "student" else None
+    
+    data = backup_module.export_all_data(user_id=user_id)
+    
+    # Tạo tên file với timestamp
+    timestamp = now_hanoi().strftime("%Y%m%d_%H%M")
+    filename = f"edusafe_export_{timestamp}.json"
+    
+    # Tạo file tạm và gửi
+    import tempfile
+    temp_file = os.path.join(tempfile.gettempdir(), filename)
+    with open(temp_file, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2, default=str)
+    
+    return send_file(
+        temp_file,
+        as_attachment=True,
+        download_name=filename,
+        mimetype="application/json"
+    )
+
+
+@app.route("/api/backup/restore", methods=["POST"])
+@require_role("admin")
+def api_backup_restore():
+    """Khôi phục dữ liệu từ file JSON"""
+    if "file" not in request.files:
+        return jsonify({"error": "Không có file"}), 400
+    
+    file = request.files["file"]
+    try:
+        data = json.load(file)
+        
+        # Backup trước khi restore
+        backup_module.backup_database(backup_type="pre_restore")
+        
+        result = backup_module.import_data(data)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": f"Lỗi đọc file: {e}"}), 400
+
+
+@app.route("/api/backup/download/<filename>", methods=["GET"])
+@require_role("admin")
+def api_backup_download(filename):
+    """Tải file backup về"""
+    # Kiểm tra filename hợp lệ (tránh path traversal)
+    if not filename.startswith("edusafe_") or ".." in filename:
+        return jsonify({"error": "Invalid filename"}), 400
+    
+    # Tìm trong local backup
+    filepath = os.path.join(backup_module.BACKUP_CONFIG["local_backup_dir"], filename)
+    if not os.path.exists(filepath):
+        filepath = os.path.join(backup_module.BACKUP_CONFIG["backup_dir"], filename)
+    
+    if not os.path.exists(filepath):
+        return jsonify({"error": "Không tìm thấy backup"}), 404
+    
+    return send_file(filepath, as_attachment=True, download_name=filename)
+
+
+@app.route("/api/backup/stats", methods=["GET"])
+@require_role("admin")
+def api_backup_stats():
+    """Thống kê backup và dung lượng"""
+    backups = backup_module.get_backup_list()
+    
+    total_size_local = sum(b["size"] for b in backups if b["location"] == "local")
+    total_size_onedrive = sum(b["size"] for b in backups if b["location"] == "onedrive")
+    
+    db_size = 0
+    if os.path.exists(backup_module.BACKUP_CONFIG["db_file"]):
+        db_size = os.path.getsize(backup_module.BACKUP_CONFIG["db_file"])
+    
+    return jsonify({
+        "db_size_mb": round(db_size / (1024*1024), 2),
+        "total_backups": len(backups),
+        "local_backups": len([b for b in backups if b["location"] == "local"]),
+        "onedrive_backups": len([b for b in backups if b["location"] == "onedrive"]),
+        "total_size_local_mb": round(total_size_local / (1024*1024), 2),
+        "total_size_onedrive_mb": round(total_size_onedrive / (1024*1024), 2),
+        "auto_backup_hours": backup_module.BACKUP_CONFIG["auto_backup_hours"],
+        "max_backups": backup_module.BACKUP_CONFIG["max_backups"],
+    })
+
+
 @app.route("/api/quiz/score", methods=["GET"])
 @require_auth
 def api_quiz_score():
@@ -904,5 +1120,11 @@ def admin_page():
     return render_template("admin.html")
 
 
+@app.route("/admin/backup")
+def admin_backup_page():
+    return render_template("admin_backup.html")
+
+
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=3000)
+    # threaded=True cho phep xu ly nhieu user cung luc (giam lag)
+    app.run(debug=False, host="0.0.0.0", port=3000, threaded=True)
