@@ -1127,4 +1127,4 @@ def admin_backup_page():
 
 if __name__ == "__main__":
     # threaded=True cho phep xu ly nhieu user cung luc (giam lag)
-    app.run(debug=False, host="0.0.0.0", port=3000, threaded=True)
+    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 3000)), threaded=True)
