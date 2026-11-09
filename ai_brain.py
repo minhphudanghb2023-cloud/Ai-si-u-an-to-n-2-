@@ -233,9 +233,6 @@ TOPICS = [
 # ---------------------------------------------------------------------------
 # ĐỘNG CƠ CHẤM ĐIỂM
 # ---------------------------------------------------------------------------
-def _tokenize(s):
-    return re.findall(r"[a-z0-9]+", s)
-
 
 def _score_topic(text_norm, topic):
     score = 0
@@ -313,8 +310,7 @@ def reply(user_text, session_id=""):
 
     # Fallback xoay vòng, không lặp cùng 1 câu
     _last_topic.pop(session_id, None)
-    import random as _r
-    ans = _r.choice(FALLBACKS)
+    ans = random.choice(FALLBACKS)
     if ans == _last_answer.get(session_id):
         ans = FALLBACKS[(FALLBACKS.index(ans) + 1) % len(FALLBACKS)]
     _last_answer[session_id] = ans

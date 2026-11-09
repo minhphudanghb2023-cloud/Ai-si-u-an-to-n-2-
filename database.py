@@ -10,9 +10,6 @@ def now_hanoi():
     """Lấy thời gian hiện tại theo giờ Hà Nội"""
     return datetime.now(HANOI_TZ)
 
-import json
-from datetime import datetime
-
 DB_PATH = os.path.join(os.path.dirname(__file__), "edusafe.db")
 
 
@@ -518,24 +515,6 @@ def empty_mood_trash(user_id):
     deleted = c.rowcount
     conn.close()
     return deleted
-
-
-def delete_old_mood_logs(user_id, days=30):
-    """Xóa nhật ký tâm trạng cũ hơn N ngày (cả mood_logs và archive)"""
-    from datetime import datetime, timedelta
-    cutoff = (now_hanoi() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("DELETE FROM mood_logs WHERE user_id=? AND created_at < ?", (user_id, cutoff))
-    deleted1 = c.rowcount
-    try:
-        c.execute("DELETE FROM mood_logs_archive WHERE user_id=? AND created_at < ?", (user_id, cutoff))
-        deleted1 += c.rowcount
-    except Exception:
-        pass
-    conn.commit()
-    conn.close()
-    return deleted1
 
 
 def delete_old_mood_logs(user_id, days=30):
